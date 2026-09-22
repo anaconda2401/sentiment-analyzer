@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChatSense &mdash; analysis report</title>
+<meta name="description" content="Sentiment breakdown for your WhatsApp export.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;510;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<script>
+  let storedTheme = localStorage.getItem('theme');
+  if (storedTheme) {
+    document.documentElement.setAttribute('data-theme', storedTheme);
+  } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
+</script>
+<div class="shell">
+
+  <!-- top rail -->
+  <header class="rail">
+    <div class="rail-left">
+      <span class="brand">chatsense</span>
+      <span class="rail-sep">/</span>
+      <span class="rail-crumb">report</span>
+    </div>
+    <nav class="rail-right">
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a href="/" class="rail-action">&larr; new analysis</a>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- date filter row -->
+    <section class="filter-row" id="filterRow">
+      <div class="filter-inner">
+        <span class="filter-label">date range</span>
+        <div class="filter-fields">
+          <div class="field-group">
+            <label class="field-tag" for="inputFrom">from</label>
+            <input class="date-input" type="date" id="inputFrom"
+                   min="{{ date_min }}" max="{{ date_max }}" value="{{ date_min }}">
+          </div>
+          <span class="filter-dash">&mdash;</span>
+          <div class="field-group">
+            <label class="field-tag" for="inputTo">to</label>
+            <input class="date-input" type="date" id="inputTo"
+                   min="{{ date_min }}" max="{{ date_max }}" value="{{ date_max }}">
+          </div>
+        </div>
+        <div class="filter-actions">
+          <button class="btn btn-primary" id="drfApplyBtn" type="button">apply</button>
+          <button class="btn btn-ghost" id="drfResetBtn" type="button">reset</button>
+          <span class="filter-badge" id="drfActiveDot" style="display:none">filtered</span>
+        </div>
+      </div>
+      <div class="filter-loading" id="dashLoading">
+        <span class="spinner"></span><span class="mono">recomputing…</span>
+      </div>
+    </section>
+
+    <!-- kpi grid -->
+    <section class="kpi-grid">
+      <div class="kpi-cell">
+        <span class="kpi-key">messages</span>
+        <span class="kpi-val" id="kpi-total-messages">{{ stats.total_messages }}</span>
+      </div>
+      <div class="kpi-cell">
+        <span class="kpi-key">participants</span>
+        <span class="kpi-val" id="kpi-participant-count">{{ stats.participant_count }}</span>
+      </div>
+      <div class="kpi-cell">
+        <span class="kpi-key">avg score</span>
+        <span class="kpi-val mono" id="kpi-average-score">{{ stats.average_score }}</span>
+      </div>
+      <div class="kpi-cell accent-pos">
+        <span class="kpi-key">positive</span>
+        <span class="kpi-val pos" id="kpi-positive-pct">{{ stats.positive_pct }}%</span>
+      </div>
+      <div class="kpi-cell accent-neu">
+        <span class="kpi-key">neutral</span>
+        <span class="kpi-val neu" id="kpi-neutral-pct">{{ stats.neutral_pct }}%</span>
+      </div>
+      <div class="kpi-cell accent-neg">
+        <span class="kpi-key">negative</span>
+        <span class="kpi-val neg" id="kpi-negative-pct">{{ stats.negative_pct }}%</span>
+      </div>
+      <div class="kpi-cell">
+        <span class="kpi-key">avg confidence</span>
+        <span class="kpi-val mono" id="kpi-average-confidence">{{ stats.average_confidence }}</span>
+      </div>
+      <div class="kpi-cell">
+        <span class="kpi-key">busiest hour</span>
+        <span class="kpi-val mono" id="kpi-busiest-hour">{{ stats.busiest_hour }}</span>
+      </div>
+    </section>
+
+    <!-- charts -->
+    <section class="chart-grid">
+      {% if dist_chart %}
+      <div class="chart-panel span-4">
+        <div class="panel-header"><span class="panel-title">distribution</span></div>
+        <div class="panel-body"><img id="chart-dist" src="{{ url_for('static', filename=dist_chart) }}" class="chart-img" alt="sentiment distribution"></div>
+      </div>
+      {% endif %}
+      {% if trend_chart %}
+      <div class="chart-panel span-8">
+        <div class="panel-header"><span class="panel-title">trend over time</span></div>
+        <div class="panel-body"><img id="chart-trend" src="{{ url_for('static', filename=trend_chart) }}" class="chart-img" alt="sentiment trend"></div>
+      </div>
+      {% endif %}
+      {% if participant_chart %}
+      <div class="chart-panel span-6">
+        <div class="panel-header"><span class="panel-title">by participant</span></div>
+        <div class="panel-body"><img id="chart-participant" src="{{ url_for('static', filename=participant_chart) }}" class="chart-img" alt="participant sentiment"></div>
+      </div>
+      {% endif %}
+      {% if conf_chart %}
+      <div class="chart-panel span-6">
+        <div class="panel-header"><span class="panel-title">confidence</span></div>
+        <div class="panel-body"><img id="chart-conf" src="{{ url_for('static', filename=conf_chart) }}" class="chart-img" alt="confidence distribution"></div>
+      </div>
+      {% endif %}
+    </section>
+
+    <!-- participants table -->
+    <section class="data-section">
+      <div class="section-header"><span class="section-title">participants</span></div>
+      <table class="data-table">
+        <thead>
+          <tr><th>sender</th><th>msgs</th><th>avg score</th><th>confidence</th><th>sentiment</th></tr>
+        </thead>
+        <tbody id="participantBody">
+        {% for s in sender_stats %}
+          <tr>
+            <td class="cell-sender">{{ s.sender }}</td>
+            <td class="mono">{{ s.message_count }}</td>
+            <td class="mono">{{ "%.3f"|format(s.avg_sentiment) }}</td>
+            <td class="mono">{{ "%.2f"|format(s.avg_confidence) }}</td>
+            <td>
+              {% if s.avg_sentiment >= 0.05 %}<span class="tag tag-pos">positive</span>
+              {% elif s.avg_sentiment <= -0.05 %}<span class="tag tag-neg">negative</span>
+              {% else %}<span class="tag tag-neu">neutral</span>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <!-- model evaluation -->
+    <section class="data-section">
+      <div class="section-header"><span class="section-title">model evaluation</span><span class="section-sub mono">static &mdash; not affected by date filter</span></div>
+
+      <div class="eval-kpi-row">
+        <div class="eval-kpi"><span class="kpi-key">accuracy</span><span class="kpi-val mono">{{ "%.1f"|format(eval_metrics.accuracy * 100) }}%</span></div>
+        <div class="eval-kpi"><span class="kpi-key">weighted f1</span><span class="kpi-val mono">{{ eval_metrics.weighted_f1 }}</span></div>
+        <div class="eval-kpi"><span class="kpi-key">macro f1</span><span class="kpi-val mono">{{ eval_metrics.macro_f1 }}</span></div>
+        <div class="eval-kpi"><span class="kpi-key">precision</span><span class="kpi-val mono">{{ eval_metrics.weighted_precision }}</span></div>
+        <div class="eval-kpi"><span class="kpi-key">recall</span><span class="kpi-val mono">{{ eval_metrics.weighted_recall }}</span></div>
+      </div>
+
+      <div class="eval-lower">
+        <table class="data-table">
+          <thead><tr><th>class</th><th>precision</th><th>recall</th><th>f1</th><th>support</th></tr></thead>
+          <tbody>
+          {% for label, m in eval_per_class.items() %}
+            <tr>
+              <td>
+                {% if label == 'Positive' %}<span class="tag tag-pos">positive</span>
+                {% elif label == 'Negative' %}<span class="tag tag-neg">negative</span>
+                {% else %}<span class="tag tag-neu">neutral</span>{% endif %}
+              </td>
+              <td class="mono">{{ m.precision }}</td>
+              <td class="mono">{{ m.recall }}</td>
+              <td class="mono">{{ m.f1 }}</td>
+              <td class="mono">{{ m.support }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% if cm_chart %}
+        <div class="chart-panel">
+          <div class="panel-header"><span class="panel-title">confusion matrix</span></div>
+          <div class="panel-body"><img src="{{ url_for('static', filename=cm_chart) }}" class="chart-img" alt="confusion matrix"></div>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- toast -->
+<div class="toast" id="drpToast" role="alert" aria-live="assertive"></div>
+
+<script>
+(function(){
+'use strict';
+var SID=`{{ session_id }}`, RMIN=`{{ date_min }}`, RMAX=`{{ date_max }}`;
+var iF=document.getElementById('inputFrom'),iT=document.getElementById('inputTo');
+var aBt=document.getElementById('drfApplyBtn'),rBt=document.getElementById('drfResetBtn');
+var dot=document.getElementById('drfActiveDot'),load=document.getElementById('dashLoading');
+var toast=document.getElementById('drpToast'),toastTmr;
+
+aBt.addEventListener('click',function(){
+  var f=iF.value,t=iT.value;
+  if(!f||!t){msg('select both dates','err');return;}
+  if(f>t){msg('from must be &le; to','err');return;}
+  dot.style.display='inline-block';
+  go(f,t);
+});
+rBt.addEventListener('click',function(){iF.value=RMIN;iT.value=RMAX;dot.style.display='none';go('','');});
+
+function go(f,t){
+  load.classList.add('active');
+  aBt.disabled=true;
+  fetch('/filter',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({session_id:SID,from_date:f,to_date:t})})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d.error){msg(d.error,'err');return;}
+    kpis(d.stats);charts(d);table(d.sender_stats);
+  })
+  .catch(function(){msg('network error','err');})
+  .finally(function(){load.classList.remove('active');aBt.disabled=false;});
+}
+
+function kpis(s){
+  set('kpi-total-messages',s.total_messages);
+  set('kpi-participant-count',s.participant_count);
+  set('kpi-average-score',s.average_score);
+  set('kpi-positive-pct',s.positive_pct+'%');
+  set('kpi-neutral-pct',s.neutral_pct+'%');
+  set('kpi-negative-pct',s.negative_pct+'%');
+  set('kpi-average-confidence',s.average_confidence);
+  set('kpi-busiest-hour',s.busiest_hour);
+}
+function set(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
+function charts(d){
+  var ts='?t='+Date.now();
+  if(d.dist_chart)swap('chart-dist','/static/'+d.dist_chart+ts);
+  if(d.trend_chart)swap('chart-trend','/static/'+d.trend_chart+ts);
+  if(d.participant_chart)swap('chart-participant','/static/'+d.participant_chart+ts);
+  if(d.conf_chart)swap('chart-conf','/static/'+d.conf_chart+ts);
+}
+function swap(id,src){var i=document.getElementById(id);if(!i)return;i.style.opacity=0;i.src=src;i.onload=function(){i.style.transition='opacity .25s';i.style.opacity=1;};}
+function table(rows){
+  var tb=document.getElementById('participantBody');if(!tb||!rows)return;
+  tb.innerHTML=rows.map(function(s){
+    var lc=s.label.toLowerCase();
+    return '<tr><td class="cell-sender">'+esc(s.sender)+'</td><td class="mono">'+s.message_count+'</td><td class="mono">'+s.avg_sentiment.toFixed(3)+'</td><td class="mono">'+s.avg_confidence.toFixed(2)+'</td><td><span class="tag tag-'+lc+'">'+lc+'</span></td></tr>';
+  }).join('');
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function msg(text,type){
+  clearTimeout(toastTmr);
+  toast.textContent=text;toast.className='toast '+(type==='err'?'toast-err':'toast-ok')+' toast-show';
+  toastTmr=setTimeout(function(){toast.classList.remove('toast-show');},3800);
+}
+}());
+
+const tgl = document.getElementById('themeToggle');
+if(tgl) {
+  tgl.addEventListener('click', () => {
+    let cur = document.documentElement.getAttribute('data-theme');
+    let next = cur === 'light' ? 'dark' : 'light';
+    if(next === 'dark') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', 'light');
+    localStorage.setItem('theme', next);
+  });
+}
+</script>
+</body>
+</html>

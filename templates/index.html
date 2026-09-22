@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChatSense &mdash; WhatsApp sentiment analysis</title>
+<meta name="description" content="Paste your WhatsApp export. Get a full sentiment breakdown in seconds.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;510;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<script>
+  let storedTheme = localStorage.getItem('theme');
+  if (storedTheme) {
+    document.documentElement.setAttribute('data-theme', storedTheme);
+  } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
+</script>
+<div class="shell">
+
+  <header class="rail">
+    <div class="rail-left"><span class="brand">chatsense</span></div>
+    <div class="rail-right">
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="upload-main">
+    <div class="upload-copy">
+      <h1 class="upload-headline">analyse your<br>WhatsApp chat.</h1>
+      <p class="upload-sub">drop a <span class="mono">.txt</span> export. get sentiment scores, trends, and confidence breakdowns &mdash; no data leaves your machine.</p>
+    </div>
+
+    <div class="upload-card">
+      <form action="/analyze" method="post" enctype="multipart/form-data" id="uploadForm">
+        <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Upload chat file">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="drop-ico">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <span class="drop-primary">drop <span class="mono">.txt</span> here</span>
+          <span class="drop-secondary">or click to browse</span>
+          <input type="file" id="fileInput" name="chat_file" accept=".txt" required>
+        </div>
+
+        <div class="file-pill" id="selectedFile">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+          <span id="selectedName"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full" id="submitBtn" disabled>
+          <span id="btnText">analyse</span>
+          <span id="btnLoader" style="display:none">analysing<span class="dot-pulse">...</span></span>
+        </button>
+      </form>
+    </div>
+  </main>
+
+</div>
+<script>
+var dz=document.getElementById('dropZone'),fi=document.getElementById('fileInput');
+var sf=document.getElementById('selectedFile'),sn=document.getElementById('selectedName');
+var sub=document.getElementById('submitBtn'),bt=document.getElementById('btnText'),bl=document.getElementById('btnLoader');
+dz.addEventListener('click',function(){fi.click();});
+dz.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();fi.click();}});
+dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('dz-over');});
+dz.addEventListener('dragleave',function(){dz.classList.remove('dz-over');});
+dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('dz-over');if(e.dataTransfer.files.length){fi.files=e.dataTransfer.files;onFile();}});
+fi.addEventListener('change',onFile);
+function onFile(){if(!fi.files.length)return;sn.textContent=fi.files[0].name;sf.classList.add('visible');sub.disabled=false;dz.classList.add('dz-filled');}
+document.getElementById('uploadForm').addEventListener('submit',function(){bt.style.display='none';bl.style.display='inline';sub.disabled=true;});
+const tgl = document.getElementById('themeToggle');
+if(tgl) {
+  tgl.addEventListener('click', () => {
+    let cur = document.documentElement.getAttribute('data-theme');
+    let next = cur === 'light' ? 'dark' : 'light';
+    if(next === 'dark') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', 'light');
+    localStorage.setItem('theme', next);
+  });
+}
+</script>
+</body>
+</html>

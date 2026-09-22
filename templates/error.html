@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatSense AI | Error</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="page-shell">
+    <header class="top-nav">
+        <div class="logo">ChatSense<strong>AI</strong></div>
+        <a href="/" class="nav-link">Go back</a>
+    </header>
+    <div class="error-center">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <h2>Something went wrong</h2>
+        <p>{{ message }}</p>
+        <a href="/" class="btn-primary" style="display:inline-block;text-decoration:none;width:auto;padding:11px 28px;">Try again</a>
+    </div>
+</div>
+</body>
+</html>
