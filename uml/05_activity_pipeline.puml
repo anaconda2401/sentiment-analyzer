@@ -1,0 +1,122 @@
+@startuml activity_pipeline
+skinparam backgroundColor #0f1115
+skinparam activityBackgroundColor #1a1d24
+skinparam activityBorderColor #3b82f6
+skinparam activityFontColor #f0f2f5
+skinparam activityArrowColor #9ea3b0
+skinparam activityDiamondBackgroundColor #1e3a5f
+skinparam activityDiamondBorderColor #3b82f6
+skinparam activityDiamondFontColor #f0f2f5
+skinparam noteBackgroundColor #1a1d24
+skinparam noteBorderColor #6b7280
+skinparam noteFontColor #9ea3b0
+skinparam partitionBackgroundColor #111827
+skinparam partitionBorderColor #374151
+skinparam partitionFontColor #d1d5db
+skinparam shadowing false
+
+title "ChatSense -- Activity Diagram: Full Analysis Pipeline"
+
+start
+
+partition "1. HTTP Request" {
+  :User uploads WhatsApp .txt file;
+  :Flask POST /analyze received;
+  :secure_filename() + save to uploads/;
+}
+
+partition "2. Parse (WhatsAppParser)" {
+  :parse_whatsapp_chat(filepath);
+  if (DataFrame empty?) then (yes)
+    :Return error.html;
+    stop
+  endif
+  :Filter system and media messages;
+  :Merge multiline continuations;
+}
+
+partition "3. PII Anonymisation (PIIAnonymizer)" {
+  :Create fresh instance (per request);
+  :Map sender names: name -> UserN;
+  :Regex: replace email / phone / URL;
+  :spaCy NER batch: PERSON / GPE -> [PII] / [ADDRESS];
+}
+
+partition "4. Text Preprocessing (TextPreprocessor)" {
+  :Unicode NFKC normalisation;
+  :Whitespace normalisation;
+  :Emoji -> :alias: (VADER-friendly);
+  :Collapse repeated chars (sooo -> soo);
+}
+
+partition "5. Dual-Model Inference" {
+  fork
+    :** VADER Sentiment Model **;
+    :polarity_scores(clean_message);
+    if (compound >= 0.05) then (Positive)
+      :sentiment = Positive;
+    elseif (compound <= -0.05) then (Negative)
+      :sentiment = Negative;
+    else (Neutral)
+      :sentiment = Neutral;
+    endif
+    :confidence, is_low_confidence, raw_score;
+  fork again
+    :** DistilBERT Manipulation Detector **;
+    :tokenize + inference (GPU batch);
+    if (manip_score >= threshold) then (Manipulative)
+      :is_manipulative = True;
+      :technique = Sarcasm | Guilt Tripping |\n  Emotional Pressure | Gaslighting |\n  Coercive Pattern;
+    else (Safe)
+      :is_manipulative = False;
+      :technique = None;
+    endif
+    :manip_confidence;
+  end fork
+}
+
+partition "6. Context Adjustment (ContextAnalyzer)" {
+  :rolling_avg = mean(raw_score, window=4);
+  :context_score = 0.7*raw + 0.3*rolling_avg;
+  :context_sentiment = re-categorise;
+}
+
+partition "7. Time Metrics + Session" {
+  :extract_hour() per row;
+  :Compute busiest_hour (mode);
+  :Parse date -> _dt;
+  :Record date_min, date_max;
+  :Persist full DataFrame to session .pkl;
+}
+
+partition "8. Chat Insights (ChatInsights)" {
+  :Count Positive / Neutral / Negative;
+  :Count manipulative messages per technique;
+  :Compute average score, confidence;
+  :Group by sender -> participant_stats;
+}
+
+partition "9. Visualisations (Visualizer)" {
+  fork
+    :Pie chart: sentiment distribution;
+  fork again
+    :Line chart: sentiment trend over time;
+  fork again
+    :Bar chart: per-participant avg sentiment;
+  fork again
+    :Histogram: confidence distribution;
+  fork again
+    :Heatmap: manipulation techniques;
+  end fork
+  :Save PNGs to static/images/{session_id}/;
+}
+
+partition "10. Response" {
+  :render_template results.html;
+  :Embed stats, charts, eval_metrics (VADER + DistilBERT);
+  :Include session_id for AJAX filtering;
+}
+
+stop
+
+@enduml

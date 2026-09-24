@@ -1,0 +1,102 @@
+@startuml state_message
+skinparam backgroundColor #0f1115
+skinparam stateBackgroundColor #1a1d24
+skinparam stateBorderColor #3b82f6
+skinparam stateFontColor #f0f2f5
+skinparam stateArrowColor #9ea3b0
+skinparam noteBackgroundColor #1a1d24
+skinparam noteBorderColor #6b7280
+skinparam noteFontColor #9ea3b0
+skinparam shadowing false
+
+title "ChatSense -- State Machine: Single WhatsApp Message"
+
+[*] --> RawText : read from .txt file
+
+state RawText {
+  : date | time | sender | raw message
+}
+
+RawText --> Discarded : is_system_message() = true
+RawText --> Discarded : is_media_message() = true
+Discarded --> [*]
+
+RawText --> Parsed : PATTERN regex match
+state Parsed {
+  : date, time, sender, message
+}
+
+Parsed --> Anonymised : PIIAnonymizer.process_dataframe()
+state Anonymised {
+  : sender = UserN
+  : [EMAIL] [PHONE] [URL] [PII] [ADDRESS] tokens
+}
+
+Anonymised --> Preprocessed : TextPreprocessor.preprocess()
+state Preprocessed {
+  : NFKC normalised
+  : emoji -> :alias:
+  : whitespace normalised
+  : repeated chars collapsed
+  : clean_message
+}
+
+state "Dual Inference" as DI {
+  state "VADER\nSentiment" as VS {
+    : sentiment: Positive|Neutral|Negative
+    : raw_score (-1.0 to 1.0)
+    : confidence (0.0 to 1.0)
+    : is_low_confidence: bool
+  }
+  state "DistilBERT\nManipulation" as DM {
+    : is_manipulative: bool
+    : technique: str | None
+    : manip_confidence: float
+    : label: Safe | Manipulative
+  }
+}
+
+Preprocessed --> DI : parallel inference
+
+DI --> ContextAdjusted : ContextAnalyzer.apply_context()
+state ContextAdjusted {
+  : context_score = 0.7*raw + 0.3*rolling_avg
+  : context_sentiment: Positive|Neutral|Negative
+  : manipulation flags carried through
+}
+
+ContextAdjusted --> Enriched : add time features
+state Enriched {
+  : hour (0-23)
+  : word_count
+  : _dt (datetime)
+}
+
+Enriched --> Aggregated : ChatInsights.compute_insights()
+state Aggregated {
+  : counted in sentiment totals
+  : counted in manipulation totals
+  : counted in participant_stats
+}
+
+Aggregated --> Persisted : pickle.dump (session cache)
+Persisted --> [*] : available for AJAX filtering
+
+note right of DM
+  <<future implementation>>
+  DistilBERT fine-tuned on D2.
+  Techniques:
+  - Sarcasm
+  - Guilt Tripping
+  - Emotional Pressure
+  - Gaslighting-like language
+  - Coercive Patterns
+end note
+
+note right of VS
+  VADER: no GPU needed.
+  Handles !!!, CAPS, :emoji:,
+  negation context.
+end note
+
+@enduml

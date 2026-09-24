@@ -1,0 +1,86 @@
+@startuml deployment_diagram
+skinparam backgroundColor #0f1115
+skinparam nodeBackgroundColor #1a1d24
+skinparam nodeBorderColor #3b82f6
+skinparam nodeFontColor #f0f2f5
+skinparam artifactBackgroundColor #111827
+skinparam artifactBorderColor #374151
+skinparam artifactFontColor #d1d5db
+skinparam arrowColor #9ea3b0
+skinparam noteBackgroundColor #1a1d24
+skinparam noteBorderColor #6b7280
+skinparam noteFontColor #9ea3b0
+skinparam shadowing false
+
+title "ChatSense -- Deployment Diagram"
+
+node "Developer Machine\n(Windows / RTX 3050 4 GB VRAM)" as Dev {
+  node "Python 3.x + .venv" as Venv {
+    artifact "app.py\n(Flask dev server :5000)"     as Flask
+    artifact "chatsense/\n(Python package)"          as Pkg
+    artifact "VADER lexicon"                          as VADER
+    artifact "spaCy en_core_web_sm"                  as Spacy
+    artifact "DistilBERT weights\n(models/manip_ckpt)" as BERT  #3b1f5e
+    artifact "HuggingFace Transformers"               as HF     #3b1f5e
+    artifact "PyTorch (GPU)"                          as TORCH  #3b1f5e
+    artifact "scikit-learn"                           as SKL
+    artifact "Matplotlib / Seaborn"                   as MPL
+    artifact "pandas / numpy"                         as Pandas
+  }
+
+  folder "uploads/\n(temp .txt files)"                    as Uploads
+  folder "static/images/\n(generated PNGs)"               as StaticImg
+  folder "/tmp/chatsense_sessions/\n(.pkl session cache)"  as Sessions
+  folder "models/\n(DistilBERT checkpoint)"                as ModelDir  #3b1f5e
+}
+
+node "User Browser" as Browser {
+  artifact "index.html"   as UI1
+  artifact "results.html" as UI2
+  artifact "style.css"    as CSS
+  artifact "AJAX JS"      as JS
+}
+
+node "ML Training Environment\n(offline -- RTX 3050 VRAM 4 GB)" as TrainEnv {
+  artifact "preprocess.py"         as PP
+  artifact "finalize_splits.py"    as FS
+  artifact "train_distilbert.py"   as TRAIN  #3b1f5e
+  folder "testing/" as TestDir {
+    artifact "final_train.csv\n12,433 rows"      as Train
+    artifact "final_validation.csv\n2,758 rows"  as Val
+    artifact "final_test.csv\n2,637 rows"        as Test
+    artifact "final_dataset.md"                  as FD
+  }
+}
+
+Browser --> Flask     : HTTP (localhost:5000)
+Flask   --> Uploads   : save uploaded .txt
+Flask   --> Sessions  : pickle DataFrame
+Flask   --> StaticImg : write chart PNGs
+Browser <-- Flask     : HTML + chart URLs
+
+Flask   --> Pkg       : imports chatsense.*
+Pkg     --> VADER
+Pkg     --> Spacy
+Pkg     --> BERT
+Pkg     --> MPL
+Pkg     --> Pandas
+BERT    --> ModelDir  : load checkpoint
+
+TrainEnv ..> ModelDir : produces fine-tuned\nDistilBERT checkpoint
+TrainEnv ..> TestDir
+
+note right of ModelDir
+  Populated after DistilBERT
+  training is complete.
+  Loaded once at Flask startup.
+  GPU inference: RTX 3050 VRAM.
+end note
+
+note bottom of TrainEnv
+  No model training yet.
+  Datasets prepared and verified.
+  Training deferred to next phase.
+end note
+
+@enduml

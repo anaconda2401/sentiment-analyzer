@@ -1,0 +1,95 @@
+@startuml use_case_diagram
+skinparam backgroundColor #0f1115
+skinparam actorBackgroundColor #1e3a5f
+skinparam actorBorderColor #3b82f6
+skinparam actorFontColor #f0f2f5
+skinparam usecaseBackgroundColor #1a1d24
+skinparam usecaseBorderColor #3b82f6
+skinparam usecaseFontColor #f0f2f5
+skinparam arrowColor #9ea3b0
+skinparam noteBackgroundColor #1a1d24
+skinparam noteBorderColor #6b7280
+skinparam noteFontColor #9ea3b0
+skinparam shadowing false
+
+title "ChatSense -- Use-Case Diagram"
+
+left to right direction
+
+actor "End User"           as User
+actor "Flask Server"       as Server
+actor "spaCy NER Model"    as NER
+actor "DistilBERT Model"   as DBERT  #3b1f5e
+actor "VADER Lexicon"      as VADER  #14532d
+
+rectangle "ChatSense Web Application" {
+
+  usecase "Upload WhatsApp\n.txt Export"           as UC1
+  usecase "Parse Chat File"                        as UC2
+  usecase "Anonymise PII"                          as UC3
+  usecase "NER: PERSON / GPE"                      as UC3b
+  usecase "Preprocess Text"                        as UC4
+  usecase "Predict Sentiment\n(VADER)"             as UC5
+  usecase "Detect Manipulation\n(DistilBERT)"      as UC6
+  usecase "Apply Context\nAdjustment"              as UC7
+  usecase "Compute Chat\nInsights"                 as UC8
+  usecase "Generate\nVisualisations"               as UC9
+  usecase "View Results\nDashboard"                as UC10
+  usecase "Filter Results\nby Date Range"          as UC11
+  usecase "View Sentiment\nEval Metrics"           as UC12
+  usecase "View Manipulation\nEval Metrics"        as UC13
+}
+
+User   --> UC1
+User   --> UC10
+User   --> UC11
+User   --> UC12
+User   --> UC13
+
+UC1    ..> UC2   : <<include>>
+UC2    ..> UC3   : <<include>>
+UC3    ..> UC3b  : <<extend>>
+UC3    ..> UC4   : <<include>>
+UC4    ..> UC5   : <<include>>
+UC4    ..> UC6   : <<include>>
+UC5    ..> UC7   : <<include>>
+UC6    ..> UC7   : <<include>>
+UC7    ..> UC8   : <<include>>
+UC8    ..> UC9   : <<include>>
+UC9    ..> UC10  : <<include>>
+
+UC11   ..> UC8   : <<extend>>
+UC11   ..> UC9   : <<extend>>
+
+Server --> UC2
+Server --> UC3
+Server --> UC4
+Server --> UC5
+Server --> UC6
+Server --> UC7
+Server --> UC8
+Server --> UC9
+Server --> UC12
+Server --> UC13
+
+NER    --> UC3b
+VADER  --> UC5
+DBERT  --> UC6
+
+note right of UC6
+  Detects manipulation patterns:
+  - Sarcasm
+  - Guilt Tripping
+  - Emotional Pressure
+  - Gaslighting-like language
+  - Coercive Patterns
+end note
+
+note right of UC5
+  VADER compound score:
+  Positive (>= 0.05)
+  Negative (<= -0.05)
+  Neutral (otherwise)
+end note
+
+@enduml

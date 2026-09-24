@@ -1,0 +1,119 @@
+@startuml component_diagram
+skinparam backgroundColor #0f1115
+skinparam componentBackgroundColor #1a1d24
+skinparam componentBorderColor #3b82f6
+skinparam componentFontColor #f0f2f5
+skinparam packageBackgroundColor #111827
+skinparam packageBorderColor #374151
+skinparam packageFontColor #d1d5db
+skinparam arrowColor #9ea3b0
+skinparam noteBackgroundColor #1a1d24
+skinparam noteBorderColor #6b7280
+skinparam noteFontColor #9ea3b0
+skinparam shadowing false
+
+title "ChatSense -- Component Diagram"
+
+actor "End User" as User
+
+package "Frontend (Browser)" {
+  [index.html\n(Upload Form)]    as UI_Upload
+  [results.html\n(Dashboard)]   as UI_Results
+  [JavaScript\n(AJAX Filter)]   as UI_JS
+}
+
+package "Flask Backend (app.py)" {
+  [GET /]                        as R_Index
+  [POST /analyze]                as R_Analyze
+  [POST /filter (AJAX)]          as R_Filter
+}
+
+package "chatsense Package" {
+  [WhatsAppParser]               as WP
+  [PIIAnonymizer]                as PII
+  [TextPreprocessor]             as TP
+  [SentimentModel\n(VADER)]      as SM
+  [ManipulationDetector\n(DistilBERT)] as MD   #3b1f5e
+  [ContextAnalyzer]              as CA
+  [ChatInsights]                 as CI
+  [Visualizer\n(Matplotlib)]     as VIZ
+  [Evaluator\n(sklearn + HF)]    as EVA
+}
+
+database "Session Cache\n(/tmp pkl)"  as SessionDB
+folder   "static/images/"             as ImgFS
+folder   "uploads/ (temp)"            as UploadFS
+folder   "models/\n(DistilBERT ckpt)" as ModelFS  #3b1f5e
+
+package "Third-party Libraries" {
+  [VADER\n(vaderSentiment)] as VADER
+  [spaCy\nen_core_web_sm]   as SPACY
+  [Transformers\n(HuggingFace)] as HF   #3b1f5e
+  [emoji]                   as EMOJI
+  [scikit-learn]            as SKL
+  [Matplotlib / Seaborn]    as MPL
+  [pandas]                  as PANDAS
+  [PyTorch]                 as TORCH  #3b1f5e
+}
+
+User       --> UI_Upload    : HTTP GET
+UI_Upload  --> R_Analyze    : POST /analyze
+UI_JS      --> R_Filter     : POST /filter
+R_Index    --> UI_Upload    : render
+R_Analyze  --> UI_Results   : render
+
+R_Analyze  --> WP           : parse chat
+R_Analyze  --> PII          : anonymise
+R_Analyze  --> TP           : preprocess
+R_Analyze  --> SM           : sentiment inference
+R_Analyze  --> MD           : manipulation inference
+R_Analyze  --> CA           : context adjustment
+R_Analyze  --> CI           : compute insights
+R_Analyze  --> VIZ          : generate charts
+R_Analyze  --> SessionDB    : pickle.dump
+R_Analyze  --> UploadFS     : save / delete file
+
+R_Filter   --> SessionDB    : pickle.load
+R_Filter   --> CI           : re-compute
+R_Filter   --> VIZ          : re-generate charts
+
+SM         --> VADER
+PII        --> SPACY
+TP         --> EMOJI
+MD         --> HF
+MD         --> TORCH
+MD         --> ModelFS      : load checkpoint
+EVA        --> SKL
+EVA        --> MD           : benchmark manipulation
+EVA        --> SM           : benchmark sentiment
+VIZ        --> MPL
+WP         --> PANDAS
+CI         --> PANDAS
+
+VIZ        --> ImgFS        : saves PNG charts
+R_Analyze  --> EVA          : run_evaluation (startup)
+
+note right of MD
+  ManipulationDetector
+  <<future implementation>>
+  DistilBERT fine-tuned on
+  final_train.csv (12,433 rows).
+  Classes: Safe / Manipulative
+  Techniques: Sarcasm, Guilt Tripping,
+  Emotional Pressure, Gaslighting,
+  Coercive Patterns.
+end note
+
+note bottom of SessionDB
+  UUID-keyed .pkl files.
+  Includes both sentiment and
+  manipulation columns.
+  Enables AJAX date filtering.
+end note
+
+note right of PII
+  Fresh instance per HTTP request.
+  Prevents cross-session data leakage.
+end note
+
+@enduml

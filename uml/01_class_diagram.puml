@@ -1,0 +1,179 @@
+@startuml class_diagram
+skinparam backgroundColor #0f1115
+skinparam classBackgroundColor #1a1d24
+skinparam classBorderColor #3b82f6
+skinparam classArrowColor #9ea3b0
+skinparam classHeaderBackgroundColor #1e3a5f
+skinparam classFontColor #f0f2f5
+skinparam classAttributeFontColor #d1d5db
+skinparam noteBackgroundColor #1a1d24
+skinparam noteBorderColor #3b82f6
+skinparam noteFontColor #9ea3b0
+skinparam shadowing false
+skinparam linetype ortho
+
+title "ChatSense -- Class Diagram"
+
+package "chatsense" #111827 {
+
+  class WhatsAppParser <<utility>> {
+    {static} SYSTEM_PHRASES : list[str]
+    {static} MEDIA_PHRASES  : list[str]
+    {static} PATTERN        : re.Pattern
+    --
+    + parse_whatsapp_chat(filepath: str) : DataFrame
+    + extract_hour(time_str: str) : int | None
+    - _is_system_message(msg: str) : bool
+    - _is_media_message(msg: str) : bool
+  }
+
+  class PIIAnonymizer {
+    - _participant_map : dict[str, str]
+    - _next_id         : int
+    --
+    + participant_map : dict <<property>>
+    + anonymize_participant(name: str) : str
+    + process_dataframe(df: DataFrame) : DataFrame
+    - _regex_anonymize(text: str, name_map: dict) : str
+    - _spacy_anonymize_batch(messages: list) : list
+  }
+
+  class TextPreprocessor {
+    {static} - _WHITESPACE_RE     : re.Pattern
+    {static} - _REPEATED_CHARS_RE : re.Pattern
+    --
+    + preprocess(text: str) : str
+  }
+
+  class SentimentModel {
+    - analyzer             : SentimentIntensityAnalyzer
+    + confidence_threshold : float = 0.55
+    --
+    + __init__(confidence_threshold: float)
+    + predict(text: str) : dict
+    ' Returns: sentiment, confidence,
+    '          is_low_confidence, raw_score
+  }
+
+  class ManipulationDetector <<future>> {
+    - model_name   : str = "distilbert-base-uncased"
+    - model_path   : str
+    - tokenizer    : DistilBertTokenizer
+    - model        : DistilBertForSequenceClassification
+    - device       : str
+    + confidence_threshold : float = 0.60
+    --
+    + __init__(model_path: str, device: str)
+    + load_model() : void
+    + predict(text: str) : dict
+    + predict_batch(texts: list[str]) : list[dict]
+    ' Returns per message:
+    '   is_manipulative: bool
+    '   technique: str | None
+    '   manip_confidence: float
+    '   label: "Safe" | "Manipulative"
+  }
+
+  class ContextAnalyzer {
+    + window_size   : int = 4
+    {static} BLEND_CURRENT : float = 0.7
+    {static} BLEND_CONTEXT : float = 0.3
+    --
+    + __init__(window_size: int)
+    + apply_context(df: DataFrame, score_col: str) : DataFrame
+    - _categorize(score: float) : str
+  }
+
+  class ChatInsights {
+    --
+    + compute_insights(df: DataFrame) : dict
+    - _pct(count: int, total: int) : float
+    ' Includes manipulation stats when
+    ' ManipulationDetector output is present
+  }
+
+  class Visualizer {
+    + output_dir : str
+    --
+    + __init__(output_dir: str)
+    + create_sentiment_distribution(df: DataFrame) : str
+    + create_trend_over_time(df: DataFrame) : str
+    + create_participant_chart(df: DataFrame) : str
+    + create_confidence_histogram(df: DataFrame) : str
+    + create_manipulation_heatmap(df: DataFrame) : str
+    - _save(name: str) : str
+    - _apply_theme() : void
+  }
+
+  class Evaluator {
+    --
+    + run_evaluation(sentiment_model, manip_detector,\n  text_preprocessor, output_dir) : tuple
+    - _eval_sentiment(model, preprocessor) : dict
+    - _eval_manipulation(detector, preprocessor) : dict
+    - _save_confusion_matrix(y_true, y_pred, out) : str
+    - _synthetic_labeled_set() : tuple
+  }
+}
+
+package "Flask App (app.py)" #111827 {
+  class FlaskApp <<singleton>> {
+    - upload_folder         : str
+    - session_cache_dir     : str
+    - preprocessor          : TextPreprocessor
+    - sentiment_model       : SentimentModel
+    - manipulation_detector : ManipulationDetector
+    - context_analyzer      : ContextAnalyzer
+    - insights_engine       : ChatInsights
+    - viz                   : Visualizer
+    - evaluator             : Evaluator
+    --
+    + index()          : Response        <<GET />>
+    + analyze()        : Response        <<POST /analyze>>
+    + filter_by_date() : JSON            <<POST /filter>>
+  }
+}
+
+FlaskApp ..> WhatsAppParser       : calls parse_whatsapp_chat()
+FlaskApp "1" *-- "1" PIIAnonymizer       : per-request instance
+FlaskApp "1" *-- "1" TextPreprocessor    : shared stateless
+FlaskApp "1" *-- "1" SentimentModel      : shared stateless
+FlaskApp "1" *-- "1" ManipulationDetector: shared, GPU-loaded once
+FlaskApp "1" *-- "1" ContextAnalyzer     : shared stateless
+FlaskApp "1" *-- "1" ChatInsights        : shared stateless
+FlaskApp "1" *-- "1" Visualizer          : per-session instance
+FlaskApp "1" *-- "1" Evaluator           : runs once at startup
+
+PIIAnonymizer    ..> WhatsAppParser     : anonymises output of
+TextPreprocessor ..> PIIAnonymizer      : processes output of
+SentimentModel   ..> TextPreprocessor   : input cleaned by
+ManipulationDetector ..> TextPreprocessor : input cleaned by
+ContextAnalyzer  ..> SentimentModel    : refines raw_score
+ContextAnalyzer  ..> ManipulationDetector : carries manip flags
+ChatInsights     ..> ContextAnalyzer   : reads context cols + manip cols
+Visualizer       ..> ChatInsights      : visualises stats from
+Evaluator        ..> SentimentModel    : benchmarks VADER
+Evaluator        ..> ManipulationDetector : benchmarks DistilBERT
+
+note right of ManipulationDetector
+  <<future implementation>>
+  DistilBERT fine-tuned on
+  final_train.csv (D2 dataset).
+  Detects: Sarcasm, Guilt Tripping,
+  Emotional Pressure, Gaslighting,
+  Coercive / Manipulative patterns.
+  GPU: RTX 3050 4 GB VRAM
+end note
+
+note right of SentimentModel
+  VADER: lexicon-based, no training.
+  Tuned for short social-media text.
+  Output: Positive / Neutral / Negative
+end note
+
+note bottom of ContextAnalyzer
+  context_score =
+    0.7 * raw_score +
+    0.3 * rolling_avg(window=4)
+end note
+
+@enduml

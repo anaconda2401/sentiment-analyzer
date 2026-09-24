@@ -1,0 +1,141 @@
+@startuml main_architecture
+!theme plain
+skinparam backgroundColor #0f1115
+skinparam defaultFontColor #f0f2f5
+skinparam defaultFontSize 12
+skinparam ArrowColor #9ea3b0
+skinparam ArrowFontColor #d1d5db
+skinparam RectangleBorderColor #3b82f6
+skinparam RectangleBackgroundColor #1a1d24
+skinparam RectangleFontColor #f0f2f5
+skinparam DatabaseBackgroundColor #1a1d24
+skinparam DatabaseBorderColor #6b7280
+skinparam CloudBackgroundColor #111827
+skinparam CloudBorderColor #374151
+skinparam NoteBorderColor #6b7280
+skinparam NoteBackgroundColor #1a1d24
+skinparam NoteFontColor #9ea3b0
+skinparam shadowing false
+
+title "ChatSense — Main System Architecture\n(VADER Sentiment + DistilBERT Manipulation Detection)"
+
+actor "User\n(Browser)" as USER
+
+rectangle "WhatsApp Export\n(.txt file)" as TXT #1e3a5f
+
+rectangle "Step 1\nWhatsAppParser" as PARSER #1e3a5f {
+  ' Android & iOS format support
+  ' System/media message filtering
+  ' Multiline message merging
+}
+
+rectangle "Step 2\nPII Anonymizer" as PII #1e3a5f {
+  ' Regex: email / phone / URL
+  ' Participant: name -> UserN
+  ' spaCy NER: PERSON / GPE
+}
+
+rectangle "Step 3\nText Preprocessor" as PREP #1e3a5f {
+  ' Unicode NFKC normalisation
+  ' Emoji -> :alias: (VADER)
+  ' Whitespace + repeat collapse
+}
+
+rectangle "Step 4a\nVADER Sentiment Model" as VADER #14532d {
+  ' Lexicon-based, no training
+  ' Scores: Positive / Neutral / Negative
+  ' Output: raw_score, confidence
+}
+
+rectangle "Step 4b\nDistilBERT\nManipulation Detector" as BERT #3b1f5e {
+  ' Fine-tuned on D2 (mentalmanip)
+  ' Detects: Sarcasm, Guilt Tripping,\n  Emotional Pressure, Gaslighting,\n  Coercive Patterns
+  ' Output: is_manipulative, technique,\n  manip_confidence
+}
+
+rectangle "Step 5\nContext Analyzer" as CTX #1e3a5f {
+  ' Sliding window (N=4)
+  ' Blends raw_score: 70% current + 30% rolling avg
+  ' context_score, context_sentiment
+}
+
+rectangle "Step 6\nChat Insights" as INSIGHTS #1e3a5f {
+  ' Aggregate stats
+  ' Per-participant breakdown
+  ' Manipulation flag counts
+}
+
+rectangle "Step 7\nVisualizer" as VIZ #1e3a5f {
+  ' Sentiment distribution (pie)
+  ' Sentiment trend over time (line)
+  ' Per-participant scores (bar)
+  ' Confidence histogram
+  ' Manipulation heatmap
+}
+
+cloud "Flask Dashboard\n(app.py)" as FLASK #111827 {
+  rectangle "GET /"               as R1
+  rectangle "POST /analyze"       as R2
+  rectangle "POST /filter (AJAX)" as R3
+}
+
+database "Session Cache\n(.pkl)" as SESSION #1a1d24
+database "static/images/"        as IMGS    #1a1d24
+
+rectangle "Evaluator\n(startup)" as EVAL #1e3a5f {
+  ' VADER: accuracy, F1 on synthetic set
+  ' DistilBERT: precision/recall on test.csv
+  ' Confusion matrices
+}
+
+USER    --> TXT     : exports from WhatsApp
+TXT     --> PARSER  : read file
+PARSER  --> PII     : DataFrame [date,time,sender,msg]
+PII     --> PREP    : anonymised DataFrame
+PREP    --> VADER   : clean_message
+PREP    --> BERT    : clean_message
+VADER   --> CTX     : raw_score
+BERT    --> CTX     : manip_score (passthrough)
+CTX     --> INSIGHTS: context_score / context_sentiment\n+ is_manipulative / technique
+INSIGHTS--> VIZ     : stats dict
+VIZ     --> IMGS    : PNG charts
+INSIGHTS--> FLASK   : stats
+IMGS    --> FLASK   : chart URLs
+FLASK   --> SESSION : pickle session
+SESSION --> FLASK   : AJAX filter reload
+FLASK   --> USER    : render results.html
+
+EVAL    ..> VADER   : benchmarks
+EVAL    ..> BERT    : benchmarks
+EVAL    ..> FLASK   : supplies eval_metrics at startup
+
+note right of VADER
+  <b>Sentiment</b> (expressed tone)
+  Positive >= 0.05
+  Negative <= -0.05
+  Neutral otherwise
+  ---
+  No GPU required.
+  Runs on CPU at inference.
+end note
+
+note right of BERT
+  <b>Manipulation Detection</b>
+  DistilBERT fine-tuned on
+  final_train.csv (17,828 sentences)
+  Classes: Safe / Manipulative
+  Techniques: Sarcasm, Guilt Tripping,
+  Emotional Pressure, Gaslighting,
+  Coercive Patterns
+  ---
+  GPU: RTX 3050 (4 GB VRAM)
+  Batch size: 16-32
+end note
+
+note bottom of SESSION
+  UUID-keyed .pkl files.
+  Full anonymised + labelled DataFrame.
+  Enables AJAX date filtering.
+end note
+
+@enduml

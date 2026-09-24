@@ -1,0 +1,101 @@
+@startuml sequence_analyze
+skinparam backgroundColor #0f1115
+skinparam sequenceLifeLineBorderColor #3b82f6
+skinparam sequenceParticipantBackgroundColor #1a1d24
+skinparam sequenceParticipantBorderColor #3b82f6
+skinparam sequenceParticipantFontColor #f0f2f5
+skinparam sequenceArrowColor #9ea3b0
+skinparam sequenceArrowFontColor #9ea3b0
+skinparam sequenceGroupBackgroundColor #111827
+skinparam sequenceGroupBorderColor #374151
+skinparam sequenceGroupFontColor #d1d5db
+skinparam noteBackgroundColor #1a1d24
+skinparam noteBorderColor #6b7280
+skinparam noteFontColor #9ea3b0
+skinparam shadowing false
+skinparam responseMessageBelowArrow true
+
+title "ChatSense -- Sequence Diagram: POST /analyze"
+
+actor       "Browser"               as B
+participant "Flask (app.py)"        as App
+participant "WhatsAppParser"        as Parser
+participant "PIIAnonymizer"         as PII
+participant "TextPreprocessor"      as Pre
+participant "SentimentModel\n(VADER)" as SM
+participant "ManipulationDetector\n(DistilBERT)" as MD
+participant "ContextAnalyzer"       as CA
+participant "ChatInsights"          as CI
+participant "Visualizer"            as Viz
+database    "Session Cache\n(pkl)"  as Cache
+
+B -> App : POST /analyze\nchat_file (.txt)
+
+group Step 1 - Parse
+  App -> Parser : parse_whatsapp_chat(filepath)
+  Parser --> App : DataFrame[date, time, sender, message]
+end
+
+group Step 2 - PII Anonymisation (fresh instance per request)
+  App -> PII : process_dataframe(df)
+  note right of PII
+    Sender names -> UserN
+    Regex: email / phone / URL
+    spaCy NER batch: PERSON / GPE
+  end note
+  PII --> App : df_anon
+end
+
+group Step 3 - Text Preprocessing
+  App -> Pre : preprocess(message) [per row]
+  Pre --> App : clean_message
+end
+
+group Step 4a - Sentiment Prediction (VADER)
+  App -> SM : predict(clean_message) [per row]
+  SM --> App : {sentiment, confidence,\n is_low_confidence, raw_score}
+end
+
+group Step 4b - Manipulation Detection (DistilBERT)
+  App -> MD : predict_batch(clean_messages)
+  note right of MD
+    Fine-tuned DistilBERT on D2 dataset.
+    Detects: Sarcasm, Guilt Tripping,
+    Emotional Pressure, Gaslighting,
+    Coercive Patterns.
+  end note
+  MD --> App : [{is_manipulative, technique,\n manip_confidence, label}]
+end
+
+group Step 5 - Context Adjustment
+  App -> CA : apply_context(df, score_col="raw_score")
+  CA --> App : df + context_score, context_sentiment
+end
+
+group Step 6 - Time Metrics & Session Persistence
+  App -> App : extract_hour(), busiest_hour,\ndate_min, date_max
+  App -> Cache : pickle.dump(df, session_id.pkl)
+end
+
+group Step 7 - Chat Insights
+  App -> CI : compute_insights(df)
+  note right of CI
+    Sentiment totals + manipulation counts
+    Per-participant breakdown
+    Low-confidence flag summary
+  end note
+  CI --> App : stats dict
+end
+
+group Step 8 - Visualisations
+  App -> Viz : create_sentiment_distribution(df)
+  App -> Viz : create_trend_over_time(df)
+  App -> Viz : create_participant_chart(df)
+  App -> Viz : create_confidence_histogram(df)
+  App -> Viz : create_manipulation_heatmap(df)
+  Viz --> App : chart paths
+end
+
+App --> B : render results.html\n(stats, charts, eval_metrics,\n session_id, date range)
+
+@enduml

@@ -1,0 +1,62 @@
+@startuml sequence_filter
+skinparam backgroundColor #0f1115
+skinparam sequenceLifeLineBorderColor #3b82f6
+skinparam sequenceParticipantBackgroundColor #1a1d24
+skinparam sequenceParticipantBorderColor #3b82f6
+skinparam sequenceParticipantFontColor #f0f2f5
+skinparam sequenceArrowColor #9ea3b0
+skinparam sequenceGroupBackgroundColor #111827
+skinparam sequenceGroupBorderColor #374151
+skinparam sequenceGroupFontColor #d1d5db
+skinparam noteBackgroundColor #1a1d24
+skinparam noteBorderColor #6b7280
+skinparam shadowing false
+
+title "ChatSense -- Sequence Diagram: POST /filter (AJAX Date Filter)"
+
+actor       "Browser (JS)"   as B
+participant "Flask (app.py)" as App
+database    "Session Cache"  as Cache
+participant "ChatInsights"   as CI
+participant "Visualizer"     as Viz
+
+B -> App : POST /filter\n{session_id, from_date, to_date}
+
+App -> Cache : load session_id.pkl
+alt session not found
+  Cache --> App : FileNotFoundError
+  App --> B : 404 {error: "Session expired"}
+else session found
+  Cache --> App : df (full processed DataFrame\nwith sentiment + manipulation columns)
+
+  group Apply Date Filter
+    App -> App : mask = (_dt >= from_date) & (_dt <= to_date)
+    App -> App : df = df[mask].copy()
+    alt empty after filter
+      App --> B : 200 {error: "No messages in range"}
+    end
+  end
+
+  group Re-compute Insights
+    App -> CI : compute_insights(df)
+    note right of CI
+      Re-uses already-computed
+      sentiment + manipulation columns.
+      No model re-inference needed.
+    end note
+    CI --> App : stats dict (with manipulation counts)
+  end
+
+  group Re-generate Charts
+    App -> Viz : create_sentiment_distribution(df)
+    App -> Viz : create_trend_over_time(df)
+    App -> Viz : create_participant_chart(df)
+    App -> Viz : create_confidence_histogram(df)
+    App -> Viz : create_manipulation_heatmap(df)
+    Viz --> App : chart paths
+  end
+
+  App --> B : 200 JSON\n{stats, sender_stats, chart URLs}
+end
+
+@enduml
