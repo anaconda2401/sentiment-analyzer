@@ -35,12 +35,25 @@ class ContextAnalyzer:
     def apply_context(self, df: pd.DataFrame, score_col: str = 'raw_score') -> pd.DataFrame:
         """
         Adds 'context_score' and 'context_sentiment' columns.
-        Falls back gracefully if score_col is missing.
+        Falls back gracefully if score_col is missing or the DataFrame has fewer
+        than 2 rows (single message / empty chat — no context window is possible).
         """
         if df.empty or score_col not in df.columns:
             return df.copy()
 
         df_ctx = df.copy()
+
+        # Edge case: all scores are NaN (e.g. messages with no content).
+        if df_ctx[score_col].isna().all():
+            df_ctx['context_score'] = float('nan')
+            df_ctx['context_sentiment'] = 'Neutral'
+            return df_ctx
+
+        if len(df_ctx) == 1:
+            # Single message — no prior context exists; use raw score directly.
+            df_ctx['context_score'] = df_ctx[score_col].round(4)
+            df_ctx['context_sentiment'] = df_ctx['context_score'].apply(_categorize)
+            return df_ctx
 
         rolling_avg = (
             df_ctx[score_col]

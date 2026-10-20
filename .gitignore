@@ -2,11 +2,9 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
 
-# Distribution / packaging
+# Python distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -39,7 +37,7 @@ venv.bak/
 .env.local
 .env.*.local
 
-# Jupyter Notebook
+# Jupyter Notebook & Checkpoints
 .ipynb_checkpoints
 
 # IDEs and Editors
@@ -47,15 +45,64 @@ venv.bak/
 .vscode/
 *.swp
 *.swo
+*~
+.project
+.pydevproject
+.settings/
 
-# Project Specific
+# Testing & Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Operating System files
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Machine Learning Large Model Checkpoints & Binaries (>100MB)
+*.bin
+*.pt
+*.pth
+*.safetensors
+*.onnx
+*.h5
+*.tflite
+*.ckpt
+data/models/**/pytorch_model.bin
+data/models/**/.cache/
+
+# User Data, Uploads & Synthetic Test Runs
+uploads/*
+!uploads/.gitkeep
+syn_test/
 testing/
-*.zip
 
-# User Data / Generated Media
-uploads/
+# Generated Session Images & Temporary Visualizations
+static/images/*
+!static/images/confusion_matrix.png
+static/*.png
+
+# Temporary Session Pickles, Caches & Logs
+*.pkl
+*.log
+*.tmp
+*.bak
+scratch/
+
+# Text & CSV Data Files (Preserving evaluation benchmarks, tokenizer vocab, and requirements)
 *.txt
 *.csv
 !requirements.txt
-static/images/
-static/*.png
+!data/sentiment_eval_dataset.csv
+!data/models/**/vocab.txt

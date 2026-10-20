@@ -23,6 +23,8 @@ MEDIA_PHRASES = ["<media omitted>", "<image omitted>", "<video omitted>", "<audi
 PATTERN = re.compile(
     r"^\[?(\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})[,\s]+(\d{1,2}:\d{2}(?::\d{2})?(?:\s*[aApP][mM])?)\]?\s*[-\u2013]?\s*([^:]+):\s*(.*)$"
 )
+_TIMESTAMP_PREFIX = re.compile(r"^\[?\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}[,\s]+\d{1,2}:\d{2}")
+
 
 
 def _is_system_message(message: str) -> bool:
@@ -44,8 +46,9 @@ def _is_media_message(message: str) -> bool:
 def parse_whatsapp_chat(filepath: str) -> pd.DataFrame:
     """
     Parses an exported WhatsApp .txt file into a DataFrame.
-    Handles Android and iOS formats, multiline messages, and filters system/media messages.
-    Returns a DataFrame with columns: date, time, sender, message.
+    Handles Android and iOS formats, multiline messages, reply/quote indicators,
+    and filters system/media messages.
+    Returns a DataFrame with columns: date, time, sender, message, is_reply, reply_preview.
     """
     data = []
 
@@ -65,21 +68,41 @@ def parse_whatsapp_chat(filepath: str) -> pd.DataFrame:
                     if _is_media_message(message):
                         continue
 
+                    # Check for quote / reply markers (e.g. > quote or "..." quote)
+                    is_reply = False
+                    reply_preview = ""
+                    trimmed_msg = message.strip()
+                    if trimmed_msg.startswith(">") or trimmed_msg.startswith("“") or trimmed_msg.startswith('"'):
+                        is_reply = True
+                        # Extract first line as reply preview
+                        lines = trimmed_msg.splitlines()
+                        reply_preview = lines[0].lstrip('>').strip()[:60]
+
                     data.append({
                         'date': date.strip(),
                         'time': time_str.strip(),
                         'sender': sender.strip(),
-                        'message': message.strip()
+                        'message': trimmed_msg,
+                        'is_reply': is_reply,
+                        'reply_preview': reply_preview
                     })
                 else:
-                    # Continuation of a multiline message
+                    # Ignore standalone system/media notification lines
+                    if _is_system_message(line) or _is_media_message(line) or _TIMESTAMP_PREFIX.match(line.strip()):
+                        continue
+                    # Continuation of a genuine multiline message
                     if data and line.strip():
+                        # If continuation was a quote line
+                        if line.strip().startswith(">"):
+                            data[-1]['is_reply'] = True
+                            if not data[-1]['reply_preview']:
+                                data[-1]['reply_preview'] = line.strip().lstrip('>').strip()[:60]
                         data[-1]['message'] += ' ' + line.strip()
     except (IOError, OSError) as e:
         raise RuntimeError(f"Could not read chat file: {e}")
 
     if not data:
-        return pd.DataFrame(columns=['date', 'time', 'sender', 'message'])
+        return pd.DataFrame(columns=['date', 'time', 'sender', 'message', 'is_reply', 'reply_preview'])
 
     df = pd.DataFrame(data)
     # Drop rows where the message is empty after stripping

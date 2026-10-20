@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatSense &mdash; WhatsApp sentiment analysis</title>
-<meta name="description" content="Paste your WhatsApp export. Get a full sentiment breakdown in seconds.">
+<title>ChatSense &mdash; WhatsApp Conversation Analytics</title>
+<meta name="description" content="Privacy-aware conversation analytics and sentiment dynamics for WhatsApp exports.">
+<meta name="application-name" content="chatsense">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;510;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -18,11 +19,23 @@
     document.documentElement.setAttribute('data-theme', 'light');
   }
 </script>
-<div class="shell">
+<div class="shell" data-app="chatsense">
 
   <header class="rail">
-    <div class="rail-left"><span class="brand">chatsense</span></div>
+    <div class="rail-left">
+      <span class="brand" style="display:flex;align-items:center;gap:7px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent);">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        chatsense
+      </span>
+      <span class="mono" style="font-size:10px;padding:2px 6px;background:rgba(94,106,210,0.12);color:var(--accent);border-radius:3px;">NLP</span>
+    </div>
     <div class="rail-right">
+      <button type="button" class="action-btn-danger" id="clearAllHistoryBtn" title="Permanently delete all workspace history and cached sessions">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        <span>clear all</span>
+      </button>
       <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
         <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -32,19 +45,19 @@
 
   <main class="upload-main">
     <div class="upload-copy">
-      <h1 class="upload-headline">analyse your<br>WhatsApp chat.</h1>
-      <p class="upload-sub">drop a <span class="mono">.txt</span> export. get sentiment scores, trends, and confidence breakdowns &mdash; no data leaves your machine.</p>
+      <h1 class="upload-headline">ChatSense</h1>
+      <p class="upload-sub">Privacy-aware WhatsApp conversation analytics and sentiment dynamics.</p>
     </div>
 
     <div class="upload-card">
       <form action="/analyze" method="post" enctype="multipart/form-data" id="uploadForm">
         <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Upload chat file">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="drop-ico">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="drop-ico">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
           </svg>
-          <span class="drop-primary">drop <span class="mono">.txt</span> here</span>
-          <span class="drop-secondary">or click to browse</span>
+          <span class="drop-primary">Choose a WhatsApp export (<span class="mono">.txt</span>)</span>
+          <span class="drop-secondary">or drag and drop file here</span>
           <input type="file" id="fileInput" name="chat_file" accept=".txt" required>
         </div>
 
@@ -53,11 +66,81 @@
           <span id="selectedName"></span>
         </div>
 
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Manipulation Detection Sensitivity</div>
+            <div class="setting-desc">Classification decision threshold</div>
+          </div>
+          <select name="abuse_threshold" id="abuseThreshold" class="setting-select">
+            <option value="0.55">Conservative (0.55)</option>
+            <option value="0.50" selected>Balanced (0.50)</option>
+            <option value="0.45">Sensitive (0.45)</option>
+            <option value="0.05">Benchmark (0.05)</option>
+          </select>
+        </div>
+
         <button type="submit" class="btn btn-primary btn-full" id="submitBtn" disabled>
-          <span id="btnText">analyse</span>
-          <span id="btnLoader" style="display:none">analysing<span class="dot-pulse">...</span></span>
+          <span id="btnText">Analyze Conversation</span>
+          <span id="btnLoader" style="display:none">Processing conversation<span class="dot-pulse">...</span></span>
         </button>
       </form>
+
+      <div id="analysisProgress" class="analysis-progress" style="display:none;">
+        <div class="progress-header">
+          <div class="progress-spinner"></div>
+          <div>
+            <div class="progress-title">Analyzing Conversation</div>
+            <div class="progress-file" id="progressFileName">Running NLP intelligence pipeline...</div>
+          </div>
+        </div>
+
+        <div class="progress-track">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="progress-info">
+          <span id="progressStage">Initializing NLP pipeline...</span>
+          <span id="progressPct" class="mono">0%</span>
+        </div>
+
+        <div class="pipeline-log" id="pipelineLog">
+          <div class="log-entry" id="step1">
+            <span class="log-dot"></span>
+            <span class="log-time mono" id="stepTime1">00:00</span>
+            <span class="log-text">Sanitizing PII &amp; masking entities</span>
+            <span class="log-status mono" id="stepStatus1">WAITING</span>
+          </div>
+          <div class="log-entry" id="step2">
+            <span class="log-dot"></span>
+            <span class="log-time mono" id="stepTime2">--:--</span>
+            <span class="log-text">Parsing turns &amp; temporal sequence</span>
+            <span class="log-status mono" id="stepStatus2">WAITING</span>
+          </div>
+          <div class="log-entry" id="step3">
+            <span class="log-dot"></span>
+            <span class="log-time mono" id="stepTime3">--:--</span>
+            <span class="log-text">Running sentiment &amp; emotion dynamics</span>
+            <span class="log-status mono" id="stepStatus3">WAITING</span>
+          </div>
+          <div class="log-entry" id="step4">
+            <span class="log-dot"></span>
+            <span class="log-time mono" id="stepTime4">--:--</span>
+            <span class="log-text">Classifying patterns &amp; boundaries</span>
+            <span class="log-status mono" id="stepStatus4">WAITING</span>
+          </div>
+          <div class="log-entry" id="step5">
+            <span class="log-dot"></span>
+            <span class="log-time mono" id="stepTime5">--:--</span>
+            <span class="log-text">Building graphs &amp; rendering dashboards</span>
+            <span class="log-status mono" id="stepStatus5">WAITING</span>
+          </div>
+        </div>
+
+        <div class="progress-footer">
+          <span>Local CPU execution &bull; Zero data retention</span>
+          <span class="mono" id="elapsedTimer">Elapsed: 00:00</span>
+        </div>
+      </div>
     </div>
   </main>
 
@@ -73,7 +156,116 @@ dz.addEventListener('dragleave',function(){dz.classList.remove('dz-over');});
 dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('dz-over');if(e.dataTransfer.files.length){fi.files=e.dataTransfer.files;onFile();}});
 fi.addEventListener('change',onFile);
 function onFile(){if(!fi.files.length)return;sn.textContent=fi.files[0].name;sf.classList.add('visible');sub.disabled=false;dz.classList.add('dz-filled');}
-document.getElementById('uploadForm').addEventListener('submit',function(){bt.style.display='none';bl.style.display='inline';sub.disabled=true;});
+
+function formatTime(s) {
+  var m = Math.floor(s / 60);
+  var sec = Math.floor(s % 60);
+  return (m < 10 ? '0' : '') + m + ':' + (sec < 10 ? '0' : '') + sec;
+}
+
+function startProgressAnimation(fileName, fileSize) {
+  var pFileName = document.getElementById('progressFileName');
+  if (pFileName) pFileName.textContent = 'Processing: ' + fileName;
+
+  var bar = document.getElementById('progressBar');
+  var stage = document.getElementById('progressStage');
+  var pct = document.getElementById('progressPct');
+  var elapsed = document.getElementById('elapsedTimer');
+
+  var isLarge = (fileSize && fileSize > 150000);
+  var startTime = Date.now();
+
+  var stages = isLarge ? [
+    { start: 0.0, end: 2.0, pctStart: 6, pctEnd: 20, text: "Sanitizing PII & masking entities...", step: 1 },
+    { start: 2.0, end: 4.5, pctStart: 20, pctEnd: 40, text: "Parsing conversation turns & sequence...", step: 2 },
+    { start: 4.5, end: 7.5, pctStart: 40, pctEnd: 60, text: "Running sentiment trajectories & emotion dynamics...", step: 3 },
+    { start: 7.5, end: 17.0, pctStart: 60, pctEnd: 88, text: "Classifying patterns & conversational boundaries...", step: 4 },
+    { start: 17.0, end: 25.0, pctStart: 88, pctEnd: 98, text: "Constructing interaction graph & dashboards...", step: 5 }
+  ] : [
+    { start: 0.0, end: 1.0, pctStart: 8, pctEnd: 24, text: "Sanitizing PII & masking entities...", step: 1 },
+    { start: 1.0, end: 2.2, pctStart: 24, pctEnd: 48, text: "Parsing conversation turns & sequence...", step: 2 },
+    { start: 2.2, end: 3.8, pctStart: 48, pctEnd: 68, text: "Running sentiment trajectories & emotion dynamics...", step: 3 },
+    { start: 3.8, end: 7.5, pctStart: 68, pctEnd: 90, text: "Classifying patterns & conversational boundaries...", step: 4 },
+    { start: 7.5, end: 11.0, pctStart: 90, pctEnd: 98, text: "Constructing interaction graph & dashboards...", step: 5 }
+  ];
+
+  var timer = setInterval(function() {
+    var sec = (Date.now() - startTime) / 1000;
+    if (elapsed) elapsed.textContent = 'Elapsed: ' + formatTime(sec);
+
+    var currentStage = stages[stages.length - 1];
+    for (var i = 0; i < stages.length; i++) {
+      if (sec >= stages[i].start && sec < stages[i].end) {
+        currentStage = stages[i];
+        break;
+      }
+    }
+
+    var progressSpan = currentStage.end - currentStage.start;
+    var progressFrac = Math.min(1, Math.max(0, (sec - currentStage.start) / progressSpan));
+    var currentPct = Math.round(currentStage.pctStart + progressFrac * (currentStage.pctEnd - currentStage.pctStart));
+    currentPct = Math.min(currentPct, 98);
+
+    if (bar) bar.style.width = currentPct + '%';
+    if (pct) pct.textContent = currentPct + '%';
+    if (stage) stage.textContent = currentStage.text;
+
+    for (var s = 1; s <= 5; s++) {
+      var row = document.getElementById('step' + s);
+      var stat = document.getElementById('stepStatus' + s);
+      var timeEl = document.getElementById('stepTime' + s);
+      if (!row || !stat) continue;
+
+      if (s < currentStage.step) {
+        row.className = 'log-entry done';
+        stat.textContent = 'DONE \u2713';
+        if (timeEl && timeEl.textContent === '--:--') {
+          timeEl.textContent = formatTime(stages[s - 1].end);
+        }
+      } else if (s === currentStage.step) {
+        row.className = 'log-entry active';
+        stat.textContent = 'RUNNING';
+        if (timeEl && timeEl.textContent === '--:--') {
+          timeEl.textContent = formatTime(sec);
+        }
+      } else {
+        row.className = 'log-entry';
+        stat.textContent = 'WAITING';
+      }
+    }
+  }, 100);
+}
+
+document.getElementById('uploadForm').addEventListener('submit', function() {
+  document.getElementById('uploadForm').style.display = 'none';
+  document.getElementById('analysisProgress').style.display = 'block';
+  var fileName = (fi.files && fi.files.length) ? fi.files[0].name : 'chat.txt';
+  var fileSize = (fi.files && fi.files.length) ? fi.files[0].size : 0;
+  startProgressAnimation(fileName, fileSize);
+});
+
+window.addEventListener('pageshow', function(e) {
+  if (e.persisted) {
+    document.getElementById('uploadForm').style.display = 'block';
+    document.getElementById('analysisProgress').style.display = 'none';
+    sub.disabled = false;
+  }
+});
+var clrBtn = document.getElementById('clearAllHistoryBtn');
+if(clrBtn) {
+  clrBtn.addEventListener('click', function() {
+    if(!confirm('Permanently delete all conversation history, temporary images, and cached sessions from server memory?')) return;
+    fetch('/clear_all', { method: 'POST' })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        alert(d.message || 'Workspace history cleared successfully.');
+        window.location.reload();
+      })
+      .catch(function() {
+        alert('Failed to clear workspace history.');
+      });
+  });
+}
 const tgl = document.getElementById('themeToggle');
 if(tgl) {
   tgl.addEventListener('click', () => {

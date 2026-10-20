@@ -1,3 +1,4 @@
+import re
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 # Confidence threshold below which a prediction is flagged as low-confidence
@@ -47,8 +48,21 @@ class SentimentModel:
             confidence = min(abs(compound) + scores['neg'] * 0.5, 1.0)
         else:
             sentiment = 'Neutral'
-            # Neutral confidence: how dominant is the neutral score
-            confidence = scores['neu']
+            # Neutral confidence: distinguish genuine neutral text from absence of evidence
+            # Strip emoji aliases (e.g. :thumbs_up:), digits, and punctuation to inspect genuine words
+            stripped_alpha = re.sub(r':[a-zA-Z0-9_]+:', ' ', text)
+            words = [w for w in stripped_alpha.split() if any(c.isalpha() for c in w)]
+
+            if not words:
+                # Insufficient evidence: emoji-only, digits, symbols, or unmapped tokens
+                # Represent uncertainty appropriately with low confidence
+                confidence = 0.25
+            elif len(words) < 2:
+                # Ambiguous single-word response (e.g., 'fine', 'k')
+                confidence = 0.40
+            else:
+                # Genuine multi-word factual/neutral statement
+                confidence = min(scores['neu'] * 0.85, 0.85)
 
         confidence = round(max(0.0, min(1.0, confidence)), 2)
         is_low_confidence = confidence < self.confidence_threshold

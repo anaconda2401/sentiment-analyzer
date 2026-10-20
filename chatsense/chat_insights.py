@@ -28,8 +28,8 @@ class ChatInsights:
         neg = counts.get('Negative', 0)
         neu = counts.get('Neutral', 0)
 
-        avg_score = round(df[score_col].mean(), 3) if score_col in df.columns else 0.0
-        avg_confidence = round(df['confidence'].mean(), 2) if 'confidence' in df.columns else 0.0
+        avg_score = round(float(df[score_col].mean()), 3) if score_col in df.columns and not pd.isna(df[score_col].mean()) else 0.0
+        avg_confidence = round(float(df['confidence'].mean()), 2) if 'confidence' in df.columns and not pd.isna(df['confidence'].mean()) else 0.0
         low_conf_count = int(df['is_low_confidence'].sum()) if 'is_low_confidence' in df.columns else 0
 
         participants = df['sender'].nunique() if 'sender' in df.columns else 0
@@ -41,8 +41,8 @@ class ChatInsights:
                 avg_sentiment=(score_col, 'mean'),
                 avg_confidence=('confidence', 'mean'),
             ).reset_index()
-            grp['avg_sentiment'] = grp['avg_sentiment'].round(3)
-            grp['avg_confidence'] = grp['avg_confidence'].round(2)
+            grp['avg_sentiment'] = grp['avg_sentiment'].fillna(0.0).round(3)
+            grp['avg_confidence'] = grp['avg_confidence'].fillna(0.0).round(2)
             participant_stats = grp.to_dict('records')
 
         return {

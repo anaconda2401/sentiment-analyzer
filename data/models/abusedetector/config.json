@@ -1,0 +1,105 @@
+{
+  "architectures": [
+    "AbusePatternDetector"
+  ],
+  "model_type": "distilbert",
+  "num_labels": 8,
+  "id2label": {
+    "0": "surveillance_accusation",
+    "1": "darvo",
+    "2": "gaslighting",
+    "3": "boundary_violation",
+    "4": "emotional_manipulation",
+    "5": "victim_blaming",
+    "6": "healthy_boundary_setting",
+    "7": "no_abuse_pattern"
+  },
+  "label2id": {
+    "surveillance_accusation": 0,
+    "darvo": 1,
+    "gaslighting": 2,
+    "boundary_violation": 3,
+    "emotional_manipulation": 4,
+    "victim_blaming": 5,
+    "healthy_boundary_setting": 6,
+    "no_abuse_pattern": 7
+  },
+  "base_model": "distilbert-base-uncased",
+  "task_specific_params": {
+    "text-classification": {
+      "problem_type": "multi_label_classification",
+      "num_labels": 8
+    }
+  },
+  "label_columns": [
+    "surveillance_accusation",
+    "darvo",
+    "gaslighting",
+    "boundary_violation",
+    "emotional_manipulation",
+    "victim_blaming",
+    "healthy_boundary_setting",
+    "no_abuse_pattern"
+  ],
+  "optimal_threshold": 0.05,
+  "model_architecture": "AbusePatternDetector",
+  "training_metrics": {
+    "test_f1_macro": 0.27733516483516485,
+    "test_f1_micro": 0.2857142857142857,
+    "hamming_loss": 0.8333333333333334,
+    "jaccard_score": 0.16666666666666666,
+    "optimal_threshold": 0.05,
+    "per_label_f1": {
+      "surveillance_accusation": {
+        "precision": 0.16666666666666666,
+        "recall": 1.0,
+        "f1": 0.2857142857142857,
+        "support": 2
+      },
+      "darvo": {
+        "precision": 0.08333333333333333,
+        "recall": 1.0,
+        "f1": 0.15384615384615385,
+        "support": 1
+      },
+      "gaslighting": {
+        "precision": 0.16666666666666666,
+        "recall": 1.0,
+        "f1": 0.2857142857142857,
+        "support": 2
+      },
+      "boundary_violation": {
+        "precision": 0.08333333333333333,
+        "recall": 1.0,
+        "f1": 0.15384615384615385,
+        "support": 1
+      },
+      "emotional_manipulation": {
+        "precision": 0.25,
+        "recall": 1.0,
+        "f1": 0.4,
+        "support": 3
+      },
+      "victim_blaming": {
+        "precision": 0.08333333333333333,
+        "recall": 1.0,
+        "f1": 0.15384615384615385,
+        "support": 1
+      },
+      "healthy_boundary_setting": {
+        "precision": 0.16666666666666666,
+        "recall": 1.0,
+        "f1": 0.2857142857142857,
+        "support": 2
+      },
+      "no_abuse_pattern": {
+        "precision": 0.3333333333333333,
+        "recall": 1.0,
+        "f1": 0.5,
+        "support": 4
+      }
+    },
+    "precision_macro": 0.16666666666666666,
+    "recall_macro": 1.0
+  }
+}

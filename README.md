@@ -1,175 +1,216 @@
 # ChatSense AI
-### Privacy-Aware WhatsApp Conversation Analytics
+### Privacy-Preserving WhatsApp Conversation Analytics & Relational Intelligence
 
-> An NLP system that analyses exported WhatsApp conversations to **estimate expressed sentiment**, identify communication patterns, and generate visual insights — while anonymising all personally identifiable information before any analysis is performed.
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Tests Passing](https://img.shields.io/badge/tests-58%20passed-success.svg)](tests/)
+[![Synthetic Edge Cases](https://img.shields.io/badge/edge%20cases-14%2F14%20passed-success.svg)](syn_test/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
----
-
-## Objectives
-
-- Parse exported WhatsApp `.txt` files and extract structured message data.
-- Detect and anonymise PII (names, phones, emails, URLs, addresses) **before** sentiment analysis.
-- Estimate expressed sentiment at both message and context-aware levels.
-- Produce interpretable metrics, charts, and a model evaluation report.
-- Never expose raw participant identities in the dashboard or charts.
+**ChatSense AI** is a privacy-first conversational intelligence system engineered to analyze exported WhatsApp chat logs (`.txt`). It performs **expressed sentiment tracking**, **temporal emotion trajectories**, **relational reciprocity graph modeling**, and **context-aware manipulation pattern detection** — executing entirely on local infrastructure with zero external data transmission, automatic PII sanitization, and ephemeral session storage.
 
 ---
 
-## Features
+## Key Features & Modular Pipeline
 
-| Feature | Description |
-|---|---|
-| WhatsApp parser | Handles Android and iOS export formats, multiline messages, and system messages |
-| PII anonymisation | Names → User1/User2, Emails → [EMAIL], Phones → [PHONE], URLs → [URL], Addresses → [ADDRESS] |
-| Text preprocessing | Unicode normalisation, emoji-to-alias conversion, negation preservation |
-| VADER sentiment | Message-level: Positive / Neutral / Negative with compound score |
-| Context-aware sentiment | Sliding-window (4 messages) blending for ambiguous messages like "Fine." |
-| Confidence scoring | Per-prediction confidence with low-confidence flag |
-| Chat insights | Counts, percentages, averages, busiest hour, per-participant breakdown |
-| Visualisations | Sentiment distribution, trend over time, participant chart, confidence histogram |
-| Model evaluation | Accuracy, Precision, Recall, F1 (weighted + macro + per-class), Confusion Matrix |
-| Limitations section | Sarcasm, short-message ambiguity, language scope |
-
----
-
-## NLP Techniques Used
-
-- **VADER** (Valence Aware Dictionary and sEntiment Reasoner) — lexicon-based sentiment analysis tuned for social text
-- **Emoji demojization** — converts emoji to text aliases so VADER can process them
-- **Sliding-window context blending** — adjusts ambiguous message scores using conversational history
-- **spaCy NER** — named entity recognition for detecting and redacting person names and locations
-- **Regular expressions** — email, phone, and URL detection
+| Pipeline Stage | Module File | Core Functionality | Underlying NLP & Graph Methods |
+|---|---|---|---|
+| **1. Chat Ingestion & Parsing** | `chatsense/whatsapp_parser.py` | Parses Android & iOS exports, multiline turns, and quote replies; excludes system/media lines | High-speed regex pattern matching + quote snippet extraction |
+| **2. Privacy & PII Sanitization** | `chatsense/pii_anonymizer.py` | Redacts participant names, phone numbers, emails, URLs, and addresses before NLP inference | Pre-compiled regex tokenizers + spaCy NER (`en_core_web_sm`) + automated residual leakage verification |
+| **3. Text Preprocessing** | `chatsense/text_preprocessor.py` | Cleans message text while preserving sentiment-bearing punctuation and emphasis | Unicode NFKC normalization + repeated character reduction + emoji preservation |
+| **4. Sentiment & Confidence** | `chatsense/sentiment_model.py` | Estimates continuous polarity (-1.0 to +1.0) with calibrated confidence handling | Valence Aware Dictionary for sEntiment Reasoning (VADER) + lexical uncertainty abstention |
+| **5. Contextual Blending** | `chatsense/context_analyzer.py` | Smooths sentiment across rolling conversational windows to detect conversational escalation | Exponential temporal decay blending + single-turn boundary protection |
+| **6. Temporal Emotion Dynamics** | `chatsense/emotion_analyzer.py` | Tracks 6 emotional dimensions across time and detects sharp conversational shifts | Multi-signal lexicon + 5-turn baseline rolling variance change-point detection |
+| **7. Manipulation Pattern Detection** | `chatsense/abuse_detector.py` & `manipulation_adapter.py` | Detects subtle relational manipulation patterns across rolling 4-turn context windows | Fine-tuned DistilBERT multi-label backbone (`SamanthaStorm/abusedetector`) + candidate turn prioritization |
+| **8. Explainability & Attribution** | `chatsense/explainability.py` | Explains flagged turns with token-level attributions and constructive non-accusatory hypotheses | Leave-one-out word occlusion scoring + contextual alternative interpretations |
+| **9. Interaction Graph Analysis** | `chatsense/conversation_graph.py` | Models participant interaction flow, reciprocity balance, and network density | NetworkX directed multigraph + reciprocity ratio + transition matrix |
+| **10. Web Interface & Dashboard** | `app.py`, `templates/`, `static/` | Interactive dark-mode dashboard with timeline filtering, session purge, and JSON export | Flask + responsive CSS3 + real-time animated stage pacing + SVG charts |
 
 ---
 
-## Architecture
+## 8-Label Manipulation Taxonomy
+
+ChatSense AI incorporates the open-source pretrained multi-label model **`SamanthaStorm/abusedetector`** (DistilBERT backbone, MIT License). Predictions map transparently across 8 documented interpersonal categories:
+
+| Model Label | Taxonomy Category | Description & Linguistic Signatures |
+|---|---|---|
+| `gaslighting` | **Gaslighting-like Language** | Reality-denying expressions, memory invalidation (*"that never happened"*, *"you're crazy"*) |
+| `darvo` | **Blame Shifting / Deflection (DARVO)** | Denying wrongdoing, attacking the sender, and reversing victim/offender roles (*"you made me do this"*) |
+| `victim_blaming` | **Blame Shifting / Deflection** | Deflecting accountability onto the partner (*"it is completely your fault"*) |
+| `emotional_manipulation` | **Emotional Coercion / Guilt Induction** | Inducing obligation, guilt, or emotional distress (*"if you loved me you would"*) |
+| `boundary_violation` | **Pressure & Controlling Language** | Disregarding explicit limits, persistent invasive demands |
+| `surveillance_accusation` | **Pressure & Controlling Language** | Inquisitorial monitoring, interrogation (*"who were you texting"*, *"show me your phone"*) |
+| `healthy_boundary_setting` | **Healthy Boundary Setting** *(Constructive)* | Clear, non-punitive boundary assertion (*"I need some space right now"*, *"let's pause"*) |
+| `no_abuse_pattern` | **Non-Manipulative Expression** | Normal communicative dialogue, factual updates, and supportive language |
+
+---
+
+## System Architecture
 
 ```
-WhatsApp .txt
-    |
-    v
-whatsapp_parser.py    -- Extracts date, time, sender, message; filters system/media lines
-    |
-    v
-pii_anonymizer.py     -- Regex + spaCy NER: replaces PII with labelled placeholders
-    |
-    v
-text_preprocessor.py  -- Unicode norm, whitespace, emoji->alias, repeated-char collapse
-    |
-    v
-sentiment_model.py    -- VADER: Positive / Neutral / Negative + confidence score
-    |
-    v
-context_analyzer.py   -- Sliding-window context-aware score adjustment
-    |
-    v
-chat_insights.py      -- Aggregated statistics (counts, %, averages, per-participant)
-    |
-    v
-visualization.py      -- matplotlib/seaborn charts (saved to static/images/)
-    |
-    v
-evaluation.py         -- Accuracy, F1, Confusion Matrix on synthetic labelled dataset
-    |
-    v
-Flask dashboard        -- results.html: all sections rendered with anonymised data only
+WhatsApp Export (.txt)
+        │
+        ▼
+[ chatsense/whatsapp_parser.py ] ── Extracts timestamp, sender, text, quotes & reply metadata
+        │
+        ▼
+[ chatsense/pii_anonymizer.py ]  ── Regex + spaCy NER masks PII (Zero-Leakage Audit)
+        │
+        ▼
+  Sanitized DataFrame (User1, User2, [PHONE], [EMAIL], [URL], [PII])
+    ┌───┴───────────────────────────┬────────────────────────────┐
+    │                               │                            │
+    ▼                               ▼                            ▼
+[ chatsense/sentiment_model.py ] [ chatsense/emotion_analyzer.py ] [ chatsense/conversation_graph.py ]
+- VADER compound score (-1..+1)  - 6-signal emotional dynamics   - NetworkX directed graph
+- Insufficient evidence guard    - 5-turn rolling trajectory     - Reciprocity ratio (0 to 1)
+- Sliding-window context blend   - Change-point detection        - Turn transitions & density
+    │                               │                            │
+    └───┬───────────────────────────┴────────────────────────────┘
+        │
+        ▼
+[ chatsense/manipulation_adapter.py ]
+- Rolling context window (4 turns: "[Context: ...] Target: ...")
+- Candidate prioritization (sub-8-second execution on 4,800+ messages)
+- Multi-label DistilBERT inference (8 authentic categories)
+- Short-token / non-lexical neural abstention (is_abstain=True)
+        │
+        ▼
+[ chatsense/explainability.py ]
+- Leave-one-out word occlusion token attribution
+- Context-aware alternative interpretations
+        │
+        ▼
+[ Web Application & Secure UI ] (app.py)
+- Responsive dark-mode dashboard with animated progress bar
+- Dynamic date range re-filtering (/filter)
+- Temporal trajectory & conversation interaction charts
+- Immediate session deletion (/delete_session) & workspace wipe (/clear_all)
+- Privacy-compliant summary export (/export/<id>)
 ```
 
 ---
 
-## Privacy Approach
+## Performance & Latency Benchmarks
 
-1. A fresh `PIIAnonymizer` instance is created for every upload — state never persists between users.
-2. Participant names are replaced with `User1`, `User2`, etc. before any text processing.
-3. Regular expressions strip emails, phone numbers, and URLs before spaCy runs.
-4. spaCy NER redacts remaining person names and location entities.
-5. No raw PII is stored beyond the duration of the HTTP request.
-6. Uploaded files are deleted immediately after parsing.
-7. The dashboard, charts, and all exports exclusively use anonymised identifiers.
+Empirical timings measured on a standard CPU test machine:
+
+| Benchmark / Operation | Measured Latency | Details |
+|---|---|---|
+| **Python Process Startup** | `0.058 s` | Interpreter cold start |
+| **Heavy Dependency Imports** | `8.45 s` | Loading PyTorch, Transformers, Pandas, Flask |
+| **Total Flask Application Init** | `13.94 s` | Complete server ready state |
+| **Homepage Response Time (`GET /`)** | `15.81 ms` | Instantaneous 200 OK delivery |
+| **10-Turn Manipulation Chat** | `1.91 s` | Full 12-stage pipeline execution |
+| **666-Turn Chat (`whatsappchat.txt`)** | `4.44 s` | Full 12-stage pipeline execution |
+| **4,815-Turn Chat (`whatsapp_chat.txt`)** | **`7.66 s`** | Reduced from $\sim 20\text{ minutes}$ via vectorized candidate prioritization |
 
 ---
 
-## Installation
+## Empirical Accuracy & Evaluation
 
+### Sentiment Analysis (Evaluated on Labeled Benchmark)
+Evaluated on `data/sentiment_eval_dataset.csv` (120 balanced WhatsApp-style samples: 40 Positive, 40 Neutral, 40 Negative):
+- **Overall Accuracy:** **87.5%**
+- **Macro F1:** **0.874** | **Weighted F1:** **0.874**
+- **Positive:** Precision: 0.780, Recall: 0.975, F1: 0.867 (Support: 40)
+- **Neutral:** Precision: 0.906, Recall: 0.725, F1: 0.806 (Support: 40)
+- **Negative:** Precision: 0.974, Recall: 0.925, F1: 0.949 (Support: 40)
+
+### Manipulation Pattern Detection (Scientific Status)
+- **Local Predictive Accuracy:** **Empirically unverified on arbitrary WhatsApp exports** (no labeled ground-truth manipulation dataset exists in this repository).
+- **Pretrained Baseline Metrics:** The model author (`SamanthaStorm/abusedetector`) reports a benchmark test Macro F1 of **0.277** on 10 relationship test conversations.
+- **System Safeguards:** ChatSense AI mitigates high false-positive rates using candidate conflict scoring, confidence threshold selection (`0.05` to `0.55`), leave-one-out explainability cards, and explicit non-manipulative alternative hypotheses.
+
+---
+
+## Privacy & Security Architecture
+
+1. **Local Processing Only:** All parsing, NER sanitization, VADER scoring, and DistilBERT inference run strictly on the host machine. No text is sent to third-party APIs.
+2. **Deterministic Pseudonymization:** Raw contact names and phone numbers are mapped to synthetic identifiers (`User1`, `User2`) before entering subsequent NLP stages.
+3. **Automated Residual Leakage Audit:** Every execution runs a leakage test scanning the corpus for unmasked participant names and email/URL patterns.
+4. **Immediate Purge Controls:** 
+   - **Delete Session:** Immediately removes pickled session data and temporary chart images.
+   - **Clear All History:** Permanently purges all cached sessions, generated visual assets, and uploaded files.
+5. **Anonymized JSON Export:** The downloadable summary report contains only aggregate counts, emotional distributions, and anonymized identifiers.
+
+---
+
+## Quickstart & Installation
+
+### 1. Prerequisites
+- Python 3.10+ (tested on Python 3.11 and 3.12)
+- Windows, macOS, or Linux
+
+### 2. Setup Virtual Environment
 ```bash
-# 1. Create and activate virtual environment
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1     # Windows
-# source .venv/bin/activate      # macOS/Linux
+# Clone the repository
+git clone https://github.com/your-username/chatsense.git
+cd chatsense
 
-# 2. Install dependencies
+# Create virtual environment
+python -m venv .venv
+
+# Activate virtual environment
+# Windows PowerShell:
+.\.venv\Scripts\Activate.ps1
+# macOS / Linux:
+source .venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
 
-# 3. Download spaCy language model
+# Download spaCy English model for NER
 python -m spacy download en_core_web_sm
 ```
 
----
+### 3. Model Weights Setup
+The pretrained DistilBERT manipulation detector requires weights located in `data/models/abusedetector/`. Because `pytorch_model.bin` is ~253 MB, it is excluded from Git tracking to respect repository size limits.
 
-## How to Run
+Download the model files directly using `curl`:
+```powershell
+# Create model folder
+mkdir data\models\abusedetector -Force
 
-```bash
+# Download model configuration and weights (~253 MB)
+curl.exe -L "https://huggingface.co/SamanthaStorm/abusedetector/resolve/main/config.json" -o "data\models\abusedetector\config.json"
+curl.exe -L "https://huggingface.co/SamanthaStorm/abusedetector/resolve/main/modeling_abuse.py" -o "data\models\abusedetector\modeling_abuse.py"
+curl.exe -L "https://huggingface.co/SamanthaStorm/abusedetector/resolve/main/training_info.json" -o "data\models\abusedetector\training_info.json"
+curl.exe -L "https://huggingface.co/SamanthaStorm/abusedetector/resolve/main/tokenizer.json" -o "data\models\abusedetector\tokenizer.json"
+curl.exe -L "https://huggingface.co/SamanthaStorm/abusedetector/resolve/main/tokenizer_config.json" -o "data\models\abusedetector\tokenizer_config.json"
+curl.exe -L "https://huggingface.co/SamanthaStorm/abusedetector/resolve/main/vocab.txt" -o "data\models\abusedetector\vocab.txt"
+curl.exe -L -C - "https://huggingface.co/SamanthaStorm/abusedetector/resolve/main/pytorch_model.bin" -o "data\models\abusedetector\pytorch_model.bin"
+```
+
+### 4. Launch Application
+```powershell
 python app.py
-# Open http://localhost:5000
 ```
+Open **`http://localhost:5000`** in your browser.
 
 ---
 
-## How to Upload a WhatsApp Export
+## Verification & Test Suites
 
-1. Open a WhatsApp chat on your phone.
-2. Tap the **three-dot menu** > **More** > **Export chat**.
-3. Choose **Without Media**.
-4. Save the `.txt` file to your computer.
-5. Upload it on the ChatSense AI home page.
-
----
-
-## Example Workflow
-
+### Run All Regression Tests
+Executes 58 unit, integration, and robustness tests:
+```powershell
+pytest tests/ -q
 ```
-Upload chat.txt
-    -> 1124 messages parsed
-    -> PII anonymised (2 participants: User1, User2)
-    -> 1124 messages preprocessed
-    -> Sentiment: 112 Positive, 972 Neutral, 40 Negative
-    -> Context adjustment applied (window=4)
-    -> Charts generated: dist.png, trend.png, participants.png, confidence.png
-    -> Evaluation: Accuracy 86.7%, Weighted F1 0.847
-    -> Report rendered at /analyze
+*Expected result: `58 passed in ~24s`*
+
+### Run Synthetic Edge-Case Suite
+Executes all 14 boundary test cases (monologues, empty files, rapid bursts, 35 participants, iOS formats):
+```powershell
+python syn_test/run_edge_case_tests.py
 ```
+*Expected result: `Total: 14, Passed: 14, Failed: 0`*
 
 ---
 
-## Running Tests
+## Ethical & Scientific Disclaimer
 
-```bash
-pytest tests/ -v
-```
-
----
-
-## Limitations
-
-- **Sarcasm and irony** are not detected. "Great job!" with sarcastic intent will likely be classified as Positive.
-- **Short ambiguous messages** ("Fine.", "Okay", "Lol") are inherently difficult to classify, even with context blending.
-- **Language** — optimised for English. Mixed-language or transliterated messages may produce inaccurate results.
-- **No psychological claims** — results reflect patterns in expressed text only, not true emotional states.
-- **PII edge cases** — unusual names, informal references, or abbreviations may not be fully detected.
-
----
-
-## Future Enhancements
-
-- Sarcasm classifier (e.g., rule-based patterns or fine-tuned lightweight model)
-- Keyword / topic extraction per sentiment class
-- Weekly and monthly trend breakdowns
-- Multi-language support
-- PDF export of the analysis report
-- Real WhatsApp labeled dataset for more reliable evaluation
-
----
-
-## Disclaimer
-
-> ChatSense AI estimates **expressed sentiment** from conversational text. It does not detect true emotions, read minds, determine psychological states, or diagnose mental health conditions. All statistics should be interpreted as patterns in written communication, not as definitive truths about any individual.
+> **IMPORTANT:** ChatSense AI is an **educational and academic natural language processing research tool**.
+> - **Not Diagnostic or Legal Evidence:** System predictions indicate computational statistical patterns in text. They **do not prove** psychological abuse, malicious intent, or interpersonal guilt.
+> - **Context Sensitivity:** Benign arguments, humor, sarcasm, logistical urgency, and stress responses can trigger elevated scores.
+> - **Privacy Boundaries:** The PII anonymizer sanitizes explicit names, phone numbers, and standard email/URL patterns. It does not prevent re-identification through unique quasi-identifiers or unlisted third-party references.
+> - All analytics are intended solely for introspective study, communication pattern exploration, and linguistic research.

@@ -1,0 +1,121 @@
+message,sentiment
+This is amazing! I love it so much!!,Positive
+"Great work on the project, really impressed!",Positive
+So happy you came to the party today! ❤️,Positive
+"Thanks a lot, you totally made my day!",Positive
+"Sounds fantastic to me, let's do it! 🚀",Positive
+Congratulations on passing your exams!! So proud of you!,Positive
+You are the best! Thank you for the ride.,Positive
+"I loved the dinner yesterday, the food was delicious.",Positive
+Haha that is hilarious 😂😂😂,Positive
+Super excited for our trip this weekend!!,Positive
+"Awesome news, well deserved promotion!",Positive
+"Thanks for checking in on me, feeling much better today.",Positive
+You did a wonderful job with the presentation.,Positive
+"Yes absolutely, that works perfectly for me!",Positive
+Loved spending time with you all today.,Positive
+Such a beautiful photo! Where was this taken?,Positive
+Really appreciate your quick response and support.,Positive
+"That is such a relief, thank goodness!",Positive
+"Brilliant idea, let's pitch that tomorrow.",Positive
+So grateful for your guidance throughout this week.,Positive
+The new update looks clean and fast! Good job team.,Positive
+Had a blast at the concert last night! 🎉,Positive
+"Everything is going so smoothly, thank you!",Positive
+Sending lots of love and best wishes your way! ✨,Positive
+Yay! Can't wait to see you soon!,Positive
+"That was extremely kind of you, thank you.",Positive
+I'm really enjoying reading this book you recommended.,Positive
+Best weekend ever with the family! 😊,Positive
+"You're a lifesaver, seriously thank you!",Positive
+Super happy with how the design turned out.,Positive
+Good morning! Wishing you a productive and happy day ahead.,Positive
+"That's wonderful news, congratulations to both of you!",Positive
+I am so impressed by your dedication and hard work.,Positive
+"Thank you so much for the thoughtful gift, I love it!",Positive
+We won the match!! Incredible performance from everyone!,Positive
+"Totally agree with you, excellent suggestion.",Positive
+Feeling very energized and inspired after our meeting.,Positive
+Such great memories from college! Miss you all.,Positive
+It was an absolute pleasure working with you on this.,Positive
+Cheers to a great start of the new semester! 🥂,Positive
+"This is terrible, I absolutely hate it.",Negative
+Worst experience ever trying to contact support.,Negative
+I'm so disappointed in how this turned out.,Negative
+"Never do that again, that was completely unacceptable.",Negative
+This makes me really angry and frustrated.,Negative
+The service was horrible and the staff was rude.,Negative
+I've been waiting for two hours and nobody showed up.,Negative
+My phone is broken and all my files are lost. 😭,Negative
+I am sick of dealing with these constant server crashes.,Negative
+"This solution is broken, inefficient, and painfully slow.",Negative
+I'm feeling really down and stressed out today.,Negative
+Stop sending these annoying spam messages in the group.,Negative
+The code is throwing errors everywhere and nothing compiles.,Negative
+"Such a waste of time and money, completely regret it.",Negative
+I am extremely upset with what you said yesterday.,Negative
+"The train got delayed by three hours, so exhausted.",Negative
+"I failed my driving test again today, feeling miserable.",Negative
+"Don't blame me for your own mistakes, that's unfair.",Negative
+"The food was cold, stale, and tasted awful.",Negative
+I hate how complicated this registration process is.,Negative
+"Nobody answered my calls, very unprofessional behavior.",Negative
+I am so tired of these endless arguments.,Negative
+My laptop crashed right before saving the report.,Negative
+"This is a complete disaster, we need to redo everything.",Negative
+I feel completely ignored and disrespected in this team.,Negative
+"Terrible quality, it broke on the first day itself.",Negative
+I'm having a horrible headache and feeling unwell.,Negative
+That was very insensitive and hurtful of you.,Negative
+"Nothing is working properly, I'm losing my patience.",Negative
+"The wifi keeps disconnecting every five minutes, so annoying.",Negative
+I am really unhappy with the current situation.,Negative
+Why did you cancel last minute without telling anyone?,Negative
+The package arrived damaged and unusable.,Negative
+I cannot believe you lied about that.,Negative
+So stressful having to deal with this emergency alone.,Negative
+This is the worst customer service I have ever seen.,Negative
+I'm fed up with the lack of communication here.,Negative
+It's frustrating when people don't respect deadlines.,Negative
+Feeling totally overwhelmed and exhausted by work.,Negative
+"That's awful to hear, I'm so sorry that happened.",Negative
+Okay,Neutral
+Fine.,Neutral
+Noted.,Neutral
+I will check the details later tonight.,Neutral
+Let me know when you arrive at the station.,Neutral
+The meeting is scheduled for 3 PM in conference room B.,Neutral
+Please find the attached PDF document for your review.,Neutral
+I'll be there in about 15 minutes.,Neutral
+Did you receive the email from the department?,Neutral
+Call me when you are free to talk.,Neutral
+The store closes at 9 PM on weekdays.,Neutral
+What is the address of the venue?,Neutral
+"I am on the bus right now, will reach soon.",Neutral
+Can you share the link to the shared drive?,Neutral
+We have class tomorrow from 10 AM to 1 PM.,Neutral
+I've forwarded the invoice to accounts.,Neutral
+Are you coming to the library today?,Neutral
+The assignment submission deadline is Friday midnight.,Neutral
+Will pick up groceries on my way home.,Neutral
+Here is the contact number: +91 98765 43210.,Neutral
+Please confirm your attendance by replying to this text.,Neutral
+"I am currently in a meeting, will text you back.",Neutral
+The file size is around 45 MB.,Neutral
+What time should we meet at the metro station?,Neutral
+I left my notebook on the second floor desk.,Neutral
+Received the package from the courier just now.,Neutral
+The lecture has been postponed to Monday.,Neutral
+Can you send me the Wi-Fi password for the lab?,Neutral
+I have updated the spreadsheet with the latest numbers.,Neutral
+Let me check with the coordinator and get back to you.,Neutral
+The presentation slides are saved in the project folder.,Neutral
+Is the office open this Saturday?,Neutral
+Payment has been processed via UPI.,Neutral
+I will send the draft by tomorrow morning.,Neutral
+Please remember to bring your student ID card.,Neutral
+The temperature today is expected to be 28 degrees.,Neutral
+We are meeting at the cafeteria entrance at 1 PM.,Neutral
+I'll drop the keys with the security guard.,Neutral
+Check page 14 of the syllabus document.,Neutral
+"Got it, see you tomorrow at 10.",Neutral

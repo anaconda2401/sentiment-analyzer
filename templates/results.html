@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatSense &mdash; analysis report</title>
-<meta name="description" content="Sentiment breakdown for your WhatsApp export.">
+<title>ChatSense AI &mdash; Intelligence &amp; Privacy Report</title>
+<meta name="description" content="Privacy-preserving WhatsApp conversational intelligence report.">
+<meta name="application-name" content="chatsense">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;510;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -18,187 +19,419 @@
     document.documentElement.setAttribute('data-theme', 'light');
   }
 </script>
-<div class="shell">
+<div class="shell" data-app="chatsense">
 
-  <!-- top rail -->
+  <!-- Header rail -->
   <header class="rail">
     <div class="rail-left">
-      <span class="brand">chatsense</span>
+      <span class="brand" style="display:flex;align-items:center;gap:7px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent);">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        chatsense
+      </span>
+      <span class="mono" style="font-size:10px;padding:2px 6px;background:rgba(94,106,210,0.12);color:var(--accent);border-radius:3px;">NLP</span>
       <span class="rail-sep">/</span>
-      <span class="rail-crumb">report</span>
+      <span class="rail-crumb">{{ filename or "chat.txt" }} &bull; {{ stats.total_messages }} msgs &bull; {{ stats.participant_count }} participants</span>
     </div>
     <nav class="rail-right">
+      <a href="/export/{{ session_id }}" class="action-btn-outline" download title="Export JSON">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>export json</span>
+      </a>
+      <button type="button" class="action-btn-danger" id="clearAllHistoryBtn" title="Clear all history">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        <span>clear all</span>
+      </button>
       <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
         <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       </button>
-      <a href="/" class="rail-action">&larr; new analysis</a>
+      <a href="/" class="rail-action">&larr; new upload</a>
     </nav>
   </header>
 
   <main>
 
-    <!-- date filter row -->
-    <section class="filter-row" id="filterRow">
-      <div class="filter-inner">
-        <span class="filter-label">date range</span>
-        <div class="filter-fields">
-          <div class="field-group">
-            <label class="field-tag" for="inputFrom">from</label>
-            <input class="date-input" type="date" id="inputFrom"
-                   min="{{ date_min }}" max="{{ date_max }}" value="{{ date_min }}">
+    <!-- Tab navigation -->
+    <nav class="view-nav" aria-label="Dashboard views" style="margin-top: 14px;">
+      <div class="view-tabs" role="tablist">
+        <button class="tab-btn active" role="tab" aria-selected="true" data-tab="tab-overview">Overview &amp; Dynamics</button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-tab="tab-patterns">Manipulation &amp; Language</button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-tab="tab-network">Interaction Topology</button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-tab="tab-privacy">Privacy &amp; Benchmark</button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-tab="tab-all">All Sections</button>
+      </div>
+    </nav>
+
+    <!-- ==================== TAB 1: OVERVIEW & DYNAMICS ==================== -->
+    <div id="tab-overview" class="view-section">
+
+      <!-- Compact privacy status strip -->
+      <div style="margin: 4px 0 12px; padding: 8px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; font-size: 12px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="audit-badge audit-pass" style="font-size:11px;">&#10003; Zero PII Leakage</span>
+          <span style="color:var(--ink-2);">Scanned <strong>{{ privacy_audit.total_messages_inspected }}</strong> messages</span>
+          {% if privacy_audit.pii_entities_masked > 0 %}
+            <span style="color:var(--ink-3);">&bull; Masked {{ privacy_audit.pii_entities_masked }} entities</span>
+          {% endif %}
+        </div>
+        <span class="mono" style="font-size:11px; color:var(--ink-3);">Strict Local Processing</span>
+      </div>
+
+      <!-- Date filter row -->
+      <section class="filter-row" id="filterRow">
+        <div class="filter-inner">
+          <span class="filter-label">timeline filter</span>
+          <div class="filter-fields">
+            <div class="field-group">
+              <label class="field-tag" for="inputFrom">from</label>
+              <input class="date-input" type="date" id="inputFrom"
+                     min="{{ date_min }}" max="{{ date_max }}" value="{{ date_min }}">
+            </div>
+            <span class="filter-dash">&mdash;</span>
+            <div class="field-group">
+              <label class="field-tag" for="inputTo">to</label>
+              <input class="date-input" type="date" id="inputTo"
+                     min="{{ date_min }}" max="{{ date_max }}" value="{{ date_max }}">
+            </div>
           </div>
-          <span class="filter-dash">&mdash;</span>
-          <div class="field-group">
-            <label class="field-tag" for="inputTo">to</label>
-            <input class="date-input" type="date" id="inputTo"
-                   min="{{ date_min }}" max="{{ date_max }}" value="{{ date_max }}">
+          <div class="filter-actions">
+            <button class="btn btn-primary" id="drfApplyBtn" type="button">apply</button>
+            <button class="btn btn-ghost" id="drfResetBtn" type="button">reset</button>
+            <span class="filter-badge" id="drfActiveDot" style="display:none">filtered</span>
           </div>
         </div>
-        <div class="filter-actions">
-          <button class="btn btn-primary" id="drfApplyBtn" type="button">apply</button>
-          <button class="btn btn-ghost" id="drfResetBtn" type="button">reset</button>
-          <span class="filter-badge" id="drfActiveDot" style="display:none">filtered</span>
+        <div class="filter-loading" id="dashLoading">
+          <span class="spinner"></span><span class="mono">updating metrics…</span>
         </div>
-      </div>
-      <div class="filter-loading" id="dashLoading">
-        <span class="spinner"></span><span class="mono">recomputing…</span>
-      </div>
-    </section>
+      </section>
 
-    <!-- kpi grid -->
-    <section class="kpi-grid">
-      <div class="kpi-cell">
-        <span class="kpi-key">messages</span>
-        <span class="kpi-val" id="kpi-total-messages">{{ stats.total_messages }}</span>
-      </div>
-      <div class="kpi-cell">
-        <span class="kpi-key">participants</span>
-        <span class="kpi-val" id="kpi-participant-count">{{ stats.participant_count }}</span>
-      </div>
-      <div class="kpi-cell">
-        <span class="kpi-key">avg score</span>
-        <span class="kpi-val mono" id="kpi-average-score">{{ stats.average_score }}</span>
-      </div>
-      <div class="kpi-cell accent-pos">
-        <span class="kpi-key">positive</span>
-        <span class="kpi-val pos" id="kpi-positive-pct">{{ stats.positive_pct }}%</span>
-      </div>
-      <div class="kpi-cell accent-neu">
-        <span class="kpi-key">neutral</span>
-        <span class="kpi-val neu" id="kpi-neutral-pct">{{ stats.neutral_pct }}%</span>
-      </div>
-      <div class="kpi-cell accent-neg">
-        <span class="kpi-key">negative</span>
-        <span class="kpi-val neg" id="kpi-negative-pct">{{ stats.negative_pct }}%</span>
-      </div>
-      <div class="kpi-cell">
-        <span class="kpi-key">avg confidence</span>
-        <span class="kpi-val mono" id="kpi-average-confidence">{{ stats.average_confidence }}</span>
-      </div>
-      <div class="kpi-cell">
-        <span class="kpi-key">busiest hour</span>
-        <span class="kpi-val mono" id="kpi-busiest-hour">{{ stats.busiest_hour }}</span>
-      </div>
-    </section>
+      <!-- KPI grid -->
+      <section class="kpi-grid">
+        <div class="kpi-cell">
+          <span class="kpi-key">messages</span>
+          <span class="kpi-val" id="kpi-total-messages">{{ stats.total_messages }}</span>
+        </div>
+        <div class="kpi-cell">
+          <span class="kpi-key">participants</span>
+          <span class="kpi-val" id="kpi-participant-count">{{ stats.participant_count }}</span>
+        </div>
+        <div class="kpi-cell">
+          <span class="kpi-key">net polarity (-1 to +1)</span>
+          <span class="kpi-val mono" id="kpi-average-score">{% if stats.average_score > 0 %}+{{ stats.average_score }}{% else %}{{ stats.average_score }}{% endif %}</span>
+        </div>
+        <div class="kpi-cell accent-pos">
+          <span class="kpi-key">positive</span>
+          <span class="kpi-val pos" id="kpi-positive-pct">{{ stats.positive_pct }}%</span>
+        </div>
+        <div class="kpi-cell accent-neu">
+          <span class="kpi-key">neutral</span>
+          <span class="kpi-val neu" id="kpi-neutral-pct">{{ stats.neutral_pct }}%</span>
+        </div>
+        <div class="kpi-cell accent-neg">
+          <span class="kpi-key">negative</span>
+          <span class="kpi-val neg" id="kpi-negative-pct">{{ stats.negative_pct }}%</span>
+        </div>
+        <div class="kpi-cell">
+          <span class="kpi-key">avg confidence</span>
+          <span class="kpi-val mono" id="kpi-average-confidence">{{ stats.average_confidence }}</span>
+        </div>
+        <div class="kpi-cell">
+          <span class="kpi-key">busiest hour</span>
+          <span class="kpi-val mono" id="kpi-busiest-hour">{{ stats.busiest_hour }}</span>
+        </div>
+      </section>
 
-    <!-- charts -->
-    <section class="chart-grid">
-      {% if dist_chart %}
-      <div class="chart-panel span-4">
-        <div class="panel-header"><span class="panel-title">distribution</span></div>
-        <div class="panel-body"><img id="chart-dist" src="{{ url_for('static', filename=dist_chart) }}" class="chart-img" alt="sentiment distribution"></div>
-      </div>
-      {% endif %}
-      {% if trend_chart %}
-      <div class="chart-panel span-8">
-        <div class="panel-header"><span class="panel-title">trend over time</span></div>
-        <div class="panel-body"><img id="chart-trend" src="{{ url_for('static', filename=trend_chart) }}" class="chart-img" alt="sentiment trend"></div>
-      </div>
-      {% endif %}
-      {% if participant_chart %}
-      <div class="chart-panel span-6">
-        <div class="panel-header"><span class="panel-title">by participant</span></div>
-        <div class="panel-body"><img id="chart-participant" src="{{ url_for('static', filename=participant_chart) }}" class="chart-img" alt="participant sentiment"></div>
-      </div>
-      {% endif %}
-      {% if conf_chart %}
-      <div class="chart-panel span-6">
-        <div class="panel-header"><span class="panel-title">confidence</span></div>
-        <div class="panel-body"><img id="chart-conf" src="{{ url_for('static', filename=conf_chart) }}" class="chart-img" alt="confidence distribution"></div>
-      </div>
-      {% endif %}
-    </section>
+      <!-- Sentiment charts grid -->
+      <section class="chart-grid">
+        {% if dist_chart %}
+        <div class="chart-panel span-4">
+          <div class="panel-header"><span class="panel-title">sentiment distribution</span></div>
+          <div class="panel-body"><img id="chart-dist" src="{{ url_for('static', filename=dist_chart) }}" class="chart-img" alt="sentiment distribution"></div>
+        </div>
+        {% endif %}
+        {% if trend_chart %}
+        <div class="chart-panel span-8">
+          <div class="panel-header"><span class="panel-title">sentiment trend over time</span></div>
+          <div class="panel-body"><img id="chart-trend" src="{{ url_for('static', filename=trend_chart) }}" class="chart-img" alt="sentiment trend"></div>
+        </div>
+        {% endif %}
+        {% if participant_chart %}
+        <div class="chart-panel span-6">
+          <div class="panel-header"><span class="panel-title">participant sentiment distribution</span></div>
+          <div class="panel-body"><img id="chart-participant" src="{{ url_for('static', filename=participant_chart) }}" class="chart-img" alt="participant sentiment"></div>
+        </div>
+        {% endif %}
+        {% if conf_chart %}
+        <div class="chart-panel span-6">
+          <div class="panel-header"><span class="panel-title">prediction confidence</span></div>
+          <div class="panel-body"><img id="chart-conf" src="{{ url_for('static', filename=conf_chart) }}" class="chart-img" alt="confidence distribution"></div>
+        </div>
+        {% endif %}
+      </section>
 
-    <!-- participants table -->
-    <section class="data-section">
-      <div class="section-header"><span class="section-title">participants</span></div>
-      <table class="data-table">
-        <thead>
-          <tr><th>sender</th><th>msgs</th><th>avg score</th><th>confidence</th><th>sentiment</th></tr>
-        </thead>
-        <tbody id="participantBody">
-        {% for s in sender_stats %}
-          <tr>
-            <td class="cell-sender">{{ s.sender }}</td>
-            <td class="mono">{{ s.message_count }}</td>
-            <td class="mono">{{ "%.3f"|format(s.avg_sentiment) }}</td>
-            <td class="mono">{{ "%.2f"|format(s.avg_confidence) }}</td>
-            <td>
-              {% if s.avg_sentiment >= 0.05 %}<span class="tag tag-pos">positive</span>
-              {% elif s.avg_sentiment <= -0.05 %}<span class="tag tag-neg">negative</span>
-              {% else %}<span class="tag tag-neu">neutral</span>{% endif %}
-            </td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </section>
+      <!-- Temporal emotion dynamics & trajectory -->
+      <section class="data-section" id="emotionSection">
+        <div class="section-header">
+          <span class="section-title">temporal emotion trajectories &amp; affective shifts</span>
+          <span class="section-sub mono">6 emotional signals &bull; rolling change-point detection</span>
+        </div>
+        <div style="display:grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 16px; padding: 16px;">
+          <div style="background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden;">
+            {% if emotion_chart %}
+              <img id="chart-emotion" src="{{ url_for('static', filename=emotion_chart) }}" class="chart-img" alt="emotion trajectory" style="width:100%; display:block;">
+            {% endif %}
+          </div>
+          <div style="background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); display:flex; flex-direction:column;">
+            <div style="padding:10px 14px; border-bottom:1px solid var(--line); font-size:12px; font-weight:500; display:flex; justify-content:space-between; align-items:center;">
+              <span>Detected Change-Points</span>
+              <span class="tag tag-neu mono">{{ change_points|length }} events</span>
+            </div>
+            <div style="overflow-y:auto; max-height:360px; padding:10px; display:flex; flex-direction:column; gap:8px;" id="changePointsList">
+              {% if change_points and change_points|length > 0 %}
+                {% for cp in change_points %}
+                  <div style="padding:8px 10px; background:var(--raise); border:1px solid var(--line); border-radius:var(--radius); font-size:11px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                      <strong style="color:{% if 'Plunge' in cp.trigger_type or 'Anger' in cp.trigger_type %}var(--neg){% else %}var(--accent){% endif %};">{{ cp.trigger_type }}</strong>
+                      <span class="mono" style="color:var(--ink-3);">{{ cp.timestamp }}</span>
+                    </div>
+                    <div style="color:var(--ink-2); margin-bottom:4px;">{{ cp.description }} &bull; Sender: <em>{{ cp.sender }}</em></div>
+                    {% if cp.window_snippet %}
+                      <div class="mono" style="font-size:10px; color:var(--ink-3); background:var(--canvas); padding:4px 6px; border-radius:2px;">
+                        "{{ cp.window_snippet }}"
+                      </div>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div style="padding:30px 16px; text-align:center; color:var(--ink-3); font-size:12px;">
+                  No sudden emotional escalations detected.
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </section>
 
-    <!-- model evaluation -->
-    <section class="data-section">
-      <div class="section-header"><span class="section-title">model evaluation</span><span class="section-sub mono">static &mdash; not affected by date filter</span></div>
-
-      <div class="eval-kpi-row">
-        <div class="eval-kpi"><span class="kpi-key">accuracy</span><span class="kpi-val mono">{{ "%.1f"|format(eval_metrics.accuracy * 100) }}%</span></div>
-        <div class="eval-kpi"><span class="kpi-key">weighted f1</span><span class="kpi-val mono">{{ eval_metrics.weighted_f1 }}</span></div>
-        <div class="eval-kpi"><span class="kpi-key">macro f1</span><span class="kpi-val mono">{{ eval_metrics.macro_f1 }}</span></div>
-        <div class="eval-kpi"><span class="kpi-key">precision</span><span class="kpi-val mono">{{ eval_metrics.weighted_precision }}</span></div>
-        <div class="eval-kpi"><span class="kpi-key">recall</span><span class="kpi-val mono">{{ eval_metrics.weighted_recall }}</span></div>
-      </div>
-
-      <div class="eval-lower">
+      <!-- Participants sentiment table -->
+      <section class="data-section">
+        <div class="section-header" style="justify-content: space-between;">
+          <span class="section-title">participants sentiment summary</span>
+          <span class="section-sub mono">polarity: -1.0 (negative) to +1.0 (positive)</span>
+        </div>
         <table class="data-table">
-          <thead><tr><th>class</th><th>precision</th><th>recall</th><th>f1</th><th>support</th></tr></thead>
-          <tbody>
-          {% for label, m in eval_per_class.items() %}
+          <thead>
+            <tr><th>sender</th><th>msgs</th><th>polarity (-1 to +1)</th><th>confidence</th><th>sentiment</th></tr>
+          </thead>
+          <tbody id="participantBody">
+          {% for s in sender_stats %}
             <tr>
+              <td class="cell-sender">{{ s.sender }}</td>
+              <td class="mono">{{ s.message_count }}</td>
+              <td class="mono" style="{% if s.avg_sentiment > 0 %}color:var(--pos);{% elif s.avg_sentiment < 0 %}color:var(--neg);{% endif %}">
+                {% if s.avg_sentiment > 0 %}+{{ "%.3f"|format(s.avg_sentiment) }}{% else %}{{ "%.3f"|format(s.avg_sentiment) }}{% endif %}
+              </td>
+              <td class="mono">{{ "%.2f"|format(s.avg_confidence) }}</td>
               <td>
-                {% if label == 'Positive' %}<span class="tag tag-pos">positive</span>
-                {% elif label == 'Negative' %}<span class="tag tag-neg">negative</span>
+                {% if s.avg_sentiment >= 0.05 %}<span class="tag tag-pos">positive</span>
+                {% elif s.avg_sentiment <= -0.05 %}<span class="tag tag-neg">negative</span>
                 {% else %}<span class="tag tag-neu">neutral</span>{% endif %}
               </td>
-              <td class="mono">{{ m.precision }}</td>
-              <td class="mono">{{ m.recall }}</td>
-              <td class="mono">{{ m.f1 }}</td>
-              <td class="mono">{{ m.support }}</td>
             </tr>
           {% endfor %}
           </tbody>
         </table>
-        {% if cm_chart %}
-        <div class="chart-panel">
-          <div class="panel-header"><span class="panel-title">confusion matrix</span></div>
-          <div class="panel-body"><img src="{{ url_for('static', filename=cm_chart) }}" class="chart-img" alt="confusion matrix"></div>
+      </section>
+
+    </div>
+
+    <!-- ==================== TAB 2: MANIPULATION & LANGUAGE ==================== -->
+    <div id="tab-patterns" class="view-section tab-hidden">
+
+      <section class="data-section" id="manipulationSection">
+        <div class="section-header">
+          <span class="section-title">manipulation pattern detection (experimental)</span>
+          <span class="section-sub mono">SamanthaStorm/abusedetector &bull; Analytical &amp; Educational Notice (do not diagnose any person)</span>
+        </div>
+
+        {% if abuse_stats and abuse_stats.available %}
+        <!-- Abuse KPI strip -->
+        <div class="eval-kpi-row" style="grid-template-columns: repeat(4, 1fr);">
+          <div class="eval-kpi"><span class="kpi-key">messages analyzed</span><span class="kpi-val mono" id="abuseTotalMsgs">{{ abuse_stats.total_messages }}</span></div>
+          <div class="eval-kpi"><span class="kpi-key">flagged patterns</span><span class="kpi-val mono" id="abuseTotalFlagged" style="color: var(--neg);">{{ abuse_stats.total_flagged }}</span></div>
+          <div class="eval-kpi"><span class="kpi-key">flagged message %</span><span class="kpi-val mono" id="abuseFlaggedPct">{{ abuse_stats.flagged_pct }}%</span></div>
+          <div class="eval-kpi"><span class="kpi-key">threshold sensitivity</span><span class="kpi-val mono">{{ abuse_stats.threshold }}</span></div>
+        </div>
+
+        <!-- Pattern badges grid -->
+        <div style="padding: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; border-bottom: 1px solid var(--line);" id="patternCardsContainer">
+          {% for p in abuse_stats.pattern_counts %}
+          <div style="background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 12px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-size: 12px; font-weight: 500; color: {% if p.is_healthy %}var(--pos){% else %}var(--ink){% endif %};">{{ p.name }}</div>
+              <div class="mono" style="font-size: 10px; color: var(--ink-3);">{{ p.pct }}%</div>
+            </div>
+            <span class="tag {% if p.is_healthy %}tag-pos{% elif p.count > 0 %}tag-neg{% else %}tag-neu{% endif %} mono">{{ p.count }}</span>
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Participant pattern breakdown table -->
+        <div class="section-header" style="background: var(--surface);">
+          <span class="section-title">participant pattern breakdown</span>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr><th>sender</th><th>messages</th><th>concerning patterns flagged</th><th>healthy boundary markers</th><th>top linguistic patterns</th></tr>
+          </thead>
+          <tbody id="abuseParticipantBody">
+          {% for part in abuse_stats.participant_patterns %}
+            <tr>
+              <td class="cell-sender">{{ part.sender }}</td>
+              <td class="mono">{{ part.total_messages }}</td>
+              <td class="mono" style="{% if part.patterns_count > 0 %}color: var(--neg);{% endif %}">{{ part.patterns_count }}</td>
+              <td class="mono" style="{% if part.healthy_boundaries > 0 %}color: var(--pos);{% endif %}">{{ part.healthy_boundaries }}</td>
+              <td>
+                {% for top_p in part.top_patterns %}
+                  <span class="tag {% if top_p == 'Healthy Boundary Setting' %}tag-pos{% elif top_p == 'None detected' %}tag-neu{% else %}tag-neg{% endif %}" style="margin-right: 4px;">{{ top_p }}</span>
+                {% endfor %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div style="padding: 16px; color: var(--ink-2); font-size: 12px;">
+          Model not loaded. Sentiment and graph modules remain fully operational.
         </div>
         {% endif %}
+      </section>
+
+      <!-- Prediction explainability & contextual evidence -->
+      <section class="data-section" id="evidenceSection">
+        <div class="section-header">
+          <span class="section-title">prediction explainability &amp; contextual evidence</span>
+          <span class="section-sub mono">Token Occlusion Attribution &bull; Alternative Interpretations</span>
+        </div>
+        <div class="evidence-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; padding: 14px;">
+          {% if evidence_samples and evidence_samples|length > 0 %}
+            {% for ev in evidence_samples %}
+              <div class="evidence-card" style="padding: 12px 14px; gap: 8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span class="tag tag-neg mono" style="font-size:11px;">{{ ev.top_category or ev.top_pattern }}</span>
+                  <span class="mono" style="font-size:11px; color:var(--ink-3);">Confidence: {{ "%.2f"|format(ev.confidence or ev.score or 0.0) }}</span>
+                </div>
+                <div class="evidence-target" style="padding: 6px 10px; font-size: 12px; background: var(--raise); border-left: 3px solid var(--accent); border-radius: 0 var(--radius) var(--radius) 0;">
+                  <strong>{{ ev.sender }}:</strong> "{{ ev.target_message }}"
+                </div>
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
+                  <span style="font-size:11px; color:var(--ink-3);">Key tokens:</span>
+                  {% for item in ev.attributed_words %}
+                    <span class="token-chip" style="font-size:10px;">
+                      {% if item is mapping %}{{ item.word }}{% elif item is sequence and item is not string %}{{ item[0] }}{% else %}{{ item }}{% endif %}
+                    </span>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div style="padding: 16px; color: var(--ink-2); font-size: 12px; grid-column: 1 / -1;">
+              No concerning manipulation patterns flagged in this conversation.
+            </div>
+          {% endif %}
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ==================== TAB 3: INTERACTION TOPOLOGY ==================== -->
+    <div id="tab-network" class="view-section tab-hidden">
+
+      <section class="data-section" id="graphSection">
+        <div class="section-header">
+          <span class="section-title">conversation interaction graph &amp; reciprocity dynamics</span>
+          <span class="section-sub mono">NetworkX directed topology &bull; turn-taking balance</span>
+        </div>
+        <div style="display:grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 16px; padding: 16px;">
+          <div style="background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden;">
+            {% if graph_chart %}
+              <img id="chart-graph" src="{{ url_for('static', filename=graph_chart) }}" class="chart-img" alt="conversation interaction graph" style="width:100%; display:block;">
+            {% endif %}
+          </div>
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div class="eval-kpi-row" style="grid-template-columns: repeat(2, 1fr); border:1px solid var(--line); border-radius:var(--radius); background:var(--surface);">
+              <div class="eval-kpi"><span class="kpi-key">reciprocity ratio</span><span class="kpi-val mono" id="graphReciprocity">{{ "%.2f"|format(graph_metrics.reciprocity_ratio) if (graph_metrics and graph_metrics.reciprocity_ratio is defined and graph_metrics.reciprocity_ratio is not none) else "N/A" }}</span></div>
+              <div class="eval-kpi"><span class="kpi-key">turn transitions</span><span class="kpi-val mono" id="graphTransitions">{{ graph_metrics.turn_transitions_count if (graph_metrics and graph_metrics.turn_transitions_count is defined) else "0" }}</span></div>
+              <div class="eval-kpi"><span class="kpi-key">conversation density</span><span class="kpi-val mono" id="graphDensity">{{ "%.2f"|format(graph_metrics.conversation_density) if (graph_metrics and graph_metrics.conversation_density is defined and graph_metrics.conversation_density is not none) else "N/A" }}</span></div>
+              <div class="eval-kpi"><span class="kpi-key">top initiator</span><span class="kpi-val mono" id="graphInitiator" style="font-size:12px;">{{ graph_metrics.top_initiator if (graph_metrics and graph_metrics.top_initiator is defined) else "N/A" }}</span></div>
+            </div>
+            <div style="padding:10px 12px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); font-size:12px; color:var(--ink-2); line-height:1.4;">
+              <span id="graphInterp">{{ graph_metrics.reciprocity_interpretation if graph_metrics else "Symmetrical mutual communication balance." }}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ==================== TAB 4: PRIVACY & BENCHMARK ==================== -->
+    <div id="tab-privacy" class="view-section tab-hidden">
+
+      <section class="data-section">
+        <div class="section-header">
+          <span class="section-title">sentiment model benchmark evaluation</span>
+          <span class="section-sub mono">120 balanced WhatsApp benchmark samples</span>
+        </div>
+
+        <div class="eval-kpi-row">
+          <div class="eval-kpi"><span class="kpi-key">accuracy</span><span class="kpi-val mono">{{ "%.1f"|format(eval_metrics.accuracy * 100) }}%</span></div>
+          <div class="eval-kpi"><span class="kpi-key">weighted f1</span><span class="kpi-val mono">{{ eval_metrics.weighted_f1 }}</span></div>
+          <div class="eval-kpi"><span class="kpi-key">macro f1</span><span class="kpi-val mono">{{ eval_metrics.macro_f1 }}</span></div>
+          <div class="eval-kpi"><span class="kpi-key">precision</span><span class="kpi-val mono">{{ eval_metrics.weighted_precision }}</span></div>
+          <div class="eval-kpi"><span class="kpi-key">recall</span><span class="kpi-val mono">{{ eval_metrics.weighted_recall }}</span></div>
+        </div>
+
+        <div class="eval-lower">
+          <table class="data-table">
+            <thead><tr><th>class</th><th>precision</th><th>recall</th><th>f1</th><th>support</th></tr></thead>
+            <tbody>
+            {% for label, m in eval_per_class.items() %}
+              <tr>
+                <td>
+                  {% if label == 'Positive' %}<span class="tag tag-pos">positive</span>
+                  {% elif label == 'Negative' %}<span class="tag tag-neg">negative</span>
+                  {% else %}<span class="tag tag-neu">neutral</span>{% endif %}
+                </td>
+                <td class="mono">{{ m.precision }}</td>
+                <td class="mono">{{ m.recall }}</td>
+                <td class="mono">{{ m.f1 }}</td>
+                <td class="mono">{{ m.support }}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% if cm_chart %}
+          <div class="chart-panel">
+            <div class="panel-header"><span class="panel-title">confusion matrix</span></div>
+            <div class="panel-body"><img src="{{ url_for('static', filename=cm_chart) }}?v={{ cm_version }}" class="chart-img" alt="confusion matrix"></div>
+          </div>
+          {% endif %}
+        </div>
+      </section>
+
+      <!-- Clean bottom actions -->
+      <div style="margin: 20px 0 40px; display:flex; justify-content:flex-end; gap:10px;">
+        <a href="/export/{{ session_id }}" class="action-btn-outline" download>export json</a>
+        <button type="button" class="action-btn-danger" id="govClearAllBtn">clear all history</button>
       </div>
-    </section>
+
+    </div>
 
   </main>
 </div>
 
-<!-- toast -->
+<!-- Toast -->
 <div class="toast" id="drpToast" role="alert" aria-live="assertive"></div>
 
 <script>
@@ -208,35 +441,147 @@ var SID=`{{ session_id }}`, RMIN=`{{ date_min }}`, RMAX=`{{ date_max }}`;
 var iF=document.getElementById('inputFrom'),iT=document.getElementById('inputTo');
 var aBt=document.getElementById('drfApplyBtn'),rBt=document.getElementById('drfResetBtn');
 var dot=document.getElementById('drfActiveDot'),load=document.getElementById('dashLoading');
+var clearAllBtn=document.getElementById('clearAllHistoryBtn');
+var govClearAllBtn=document.getElementById('govClearAllBtn');
 var toast=document.getElementById('drpToast'),toastTmr;
 
-aBt.addEventListener('click',function(){
-  var f=iF.value,t=iT.value;
-  if(!f||!t){msg('select both dates','err');return;}
-  if(f>t){msg('from must be &le; to','err');return;}
-  dot.style.display='inline-block';
-  go(f,t);
+// Tab switcher
+var tabBtns = document.querySelectorAll('.tab-btn');
+var sections = {
+  'tab-overview': document.getElementById('tab-overview'),
+  'tab-patterns': document.getElementById('tab-patterns'),
+  'tab-network': document.getElementById('tab-network'),
+  'tab-privacy': document.getElementById('tab-privacy')
+};
+
+tabBtns.forEach(function(btn){
+  btn.addEventListener('click', function(){
+    var target = btn.getAttribute('data-tab');
+    tabBtns.forEach(function(b){ b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+
+    if(target === 'tab-all'){
+      Object.keys(sections).forEach(function(k){ if(sections[k]) sections[k].classList.remove('tab-hidden'); });
+    } else {
+      Object.keys(sections).forEach(function(k){
+        if(!sections[k]) return;
+        if(k === target) sections[k].classList.remove('tab-hidden');
+        else sections[k].classList.add('tab-hidden');
+      });
+    }
+  });
 });
-rBt.addEventListener('click',function(){iF.value=RMIN;iT.value=RMAX;dot.style.display='none';go('','');});
+
+// Filter
+if(aBt){
+  aBt.addEventListener('click',function(){
+    var f=iF.value,t=iT.value;
+    if(!f||!t){msg('select both dates','err');return;}
+    if(f>t){msg('from must be &le; to','err');return;}
+    if(dot) dot.style.display='inline-block';
+    go(f,t);
+  });
+}
+if(rBt){
+  rBt.addEventListener('click',function(){
+    if(iF) iF.value=RMIN;
+    if(iT) iT.value=RMAX;
+    if(dot) dot.style.display='none';
+    go('','');
+  });
+}
+
+// Clear all history
+function executeClearAll(){
+  if(!confirm('Delete all past session data and cached charts?')) return;
+  fetch('/clear_all',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'}
+  })
+  .then(function(r){return r.json();})
+  .then(function(d){
+    msg(d.message || 'All history cleared.','ok');
+    setTimeout(function(){window.location.href='/';}, 1000);
+  })
+  .catch(function(){msg('Failed to clear history','err');});
+}
+
+if(clearAllBtn) clearAllBtn.addEventListener('click', executeClearAll);
+if(govClearAllBtn) govClearAllBtn.addEventListener('click', executeClearAll);
 
 function go(f,t){
-  load.classList.add('active');
-  aBt.disabled=true;
+  if(load) load.classList.add('active');
+  if(aBt) aBt.disabled=true;
   fetch('/filter',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({session_id:SID,from_date:f,to_date:t})})
   .then(function(r){return r.json();})
   .then(function(d){
     if(d.error){msg(d.error,'err');return;}
-    kpis(d.stats);charts(d);table(d.sender_stats);
+    kpis(d.stats);
+    charts(d);
+    table(d.sender_stats);
+    if(d.abuse_stats)updateAbuse(d.abuse_stats);
+    if(d.graph_metrics)updateGraph(d.graph_metrics);
   })
   .catch(function(){msg('network error','err');})
-  .finally(function(){load.classList.remove('active');aBt.disabled=false;});
+  .finally(function(){
+    if(load) load.classList.remove('active');
+    if(aBt) aBt.disabled=false;
+  });
+}
+
+function updateGraph(g){
+  if(!g) return;
+  set('graphReciprocity', g.reciprocity_ratio ? g.reciprocity_ratio.toFixed(2) : 'N/A');
+  set('graphTransitions', g.turn_transitions_count || 0);
+  set('graphDensity', g.conversation_density ? g.conversation_density.toFixed(2) : 'N/A');
+  set('graphInitiator', g.top_initiator || 'N/A');
+  set('graphInterp', g.reciprocity_interpretation || '');
+}
+
+function updateAbuse(a){
+  if(!a || !a.available) return;
+  set('abuseTotalMsgs', a.total_messages);
+  set('abuseTotalFlagged', a.total_flagged);
+  set('abuseFlaggedPct', a.flagged_pct + '%');
+
+  var cards = document.getElementById('patternCardsContainer');
+  if(cards && a.pattern_counts){
+    cards.innerHTML = a.pattern_counts.map(function(p){
+      var col = p.is_healthy ? 'var(--pos)' : 'var(--ink)';
+      var tagCls = p.is_healthy ? 'tag-pos' : (p.count > 0 ? 'tag-neg' : 'tag-neu');
+      return '<div style="background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 12px; display: flex; justify-content: space-between; align-items: center;">' +
+             '<div><div style="font-size: 12px; font-weight: 500; color: '+col+';">'+esc(p.name)+'</div>' +
+             '<div class="mono" style="font-size: 10px; color: var(--ink-3);">'+p.pct+'%</div></div>' +
+             '<span class="tag '+tagCls+' mono">'+p.count+'</span></div>';
+    }).join('');
+  }
+
+  var ptb = document.getElementById('abuseParticipantBody');
+  if(ptb && a.participant_patterns){
+    ptb.innerHTML = a.participant_patterns.map(function(part){
+      var badColor = part.patterns_count > 0 ? 'color: var(--neg);' : '';
+      var goodColor = part.healthy_boundaries > 0 ? 'color: var(--pos);' : '';
+      var tags = part.top_patterns.map(function(tp){
+        var cls = (tp === 'Healthy Boundary Setting') ? 'tag-pos' : ((tp === 'None detected') ? 'tag-neu' : 'tag-neg');
+        return '<span class="tag '+cls+'" style="margin-right: 4px;">'+esc(tp)+'</span>';
+      }).join('');
+      return '<tr><td class="cell-sender">'+esc(part.sender)+'</td>' +
+             '<td class="mono">'+part.total_messages+'</td>' +
+             '<td class="mono" style="'+badColor+'">'+part.patterns_count+'</td>' +
+             '<td class="mono" style="'+goodColor+'">'+part.healthy_boundaries+'</td>' +
+             '<td>'+tags+'</td></tr>';
+    }).join('');
+  }
 }
 
 function kpis(s){
+  if(!s) return;
   set('kpi-total-messages',s.total_messages);
   set('kpi-participant-count',s.participant_count);
-  set('kpi-average-score',s.average_score);
+  var sign = s.average_score > 0 ? '+' : '';
+  set('kpi-average-score', sign + s.average_score);
   set('kpi-positive-pct',s.positive_pct+'%');
   set('kpi-neutral-pct',s.neutral_pct+'%');
   set('kpi-negative-pct',s.negative_pct+'%');
@@ -250,17 +595,22 @@ function charts(d){
   if(d.trend_chart)swap('chart-trend','/static/'+d.trend_chart+ts);
   if(d.participant_chart)swap('chart-participant','/static/'+d.participant_chart+ts);
   if(d.conf_chart)swap('chart-conf','/static/'+d.conf_chart+ts);
+  if(d.emotion_chart)swap('chart-emotion','/static/'+d.emotion_chart+ts);
+  if(d.graph_chart)swap('chart-graph','/static/'+d.graph_chart+ts);
 }
 function swap(id,src){var i=document.getElementById(id);if(!i)return;i.style.opacity=0;i.src=src;i.onload=function(){i.style.transition='opacity .25s';i.style.opacity=1;};}
 function table(rows){
   var tb=document.getElementById('participantBody');if(!tb||!rows)return;
   tb.innerHTML=rows.map(function(s){
     var lc=s.label.toLowerCase();
-    return '<tr><td class="cell-sender">'+esc(s.sender)+'</td><td class="mono">'+s.message_count+'</td><td class="mono">'+s.avg_sentiment.toFixed(3)+'</td><td class="mono">'+s.avg_confidence.toFixed(2)+'</td><td><span class="tag tag-'+lc+'">'+lc+'</span></td></tr>';
+    var sign = s.avg_sentiment > 0 ? '+' : '';
+    var col = s.avg_sentiment > 0 ? 'color:var(--pos);' : (s.avg_sentiment < 0 ? 'color:var(--neg);' : '');
+    return '<tr><td class="cell-sender">'+esc(s.sender)+'</td><td class="mono">'+s.message_count+'</td><td class="mono" style="'+col+'">'+sign+s.avg_sentiment.toFixed(3)+'</td><td class="mono">'+s.avg_confidence.toFixed(2)+'</td><td><span class="tag tag-'+lc+'">'+lc+'</span></td></tr>';
   }).join('');
 }
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function msg(text,type){
+  if(!toast) return;
   clearTimeout(toastTmr);
   toast.textContent=text;toast.className='toast '+(type==='err'?'toast-err':'toast-ok')+' toast-show';
   toastTmr=setTimeout(function(){toast.classList.remove('toast-show');},3800);

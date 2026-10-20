@@ -67,6 +67,17 @@ class TestWhatsAppParser:
         os.unlink(path)
         assert len(df) == 1
 
+    def test_uncolonized_system_message_not_appended_to_multiline(self):
+        path = _write_chat([
+            "27/08/2026, 8:02 PM - Alice: First message",
+            "27/08/2026, 8:03 PM - Messages and calls are end-to-end encrypted.",
+            "27/08/2026, 8:04 PM - Bob: Second message",
+        ])
+        df = parse_whatsapp_chat(path)
+        os.unlink(path)
+        assert len(df) == 2
+        assert "end-to-end encrypted" not in df.iloc[0]['message']
+
     def test_media_omitted_excluded(self):
         path = _write_chat([
             "27/08/2026, 8:02 PM - Alice: <Media omitted>",
@@ -142,6 +153,13 @@ class TestPIIAnonymizer:
         result2 = pii2.process_dataframe(df)
         # pii2 should still map Alice -> User1 regardless of pii1's state
         assert result2.iloc[0]['sender'] == 'User1'
+
+    def test_anonymize_non_string_or_none_sender(self):
+        pii = PIIAnonymizer()
+        df = pd.DataFrame([{'sender': None, 'message': 'Hello'}, {'sender': '', 'message': 'Hi'}])
+        result = pii.process_dataframe(df)
+        assert result.iloc[0]['sender'] == 'User1'
+        assert result.iloc[1]['sender'] == 'User1'
 
 
 # ===========================
@@ -292,6 +310,23 @@ class TestChatInsights:
     def test_empty_dataframe(self):
         ins = ChatInsights()
         assert ins.compute_insights(pd.DataFrame()) == {}
+
+    def test_nan_scores_handled_safely(self):
+        ins = ChatInsights()
+        df = pd.DataFrame({
+            'sender': ['User1', 'User2'],
+            'message': ['Test 1', 'Test 2'],
+            'context_sentiment': ['Neutral', 'Neutral'],
+            'context_score': [float('nan'), float('nan')],
+            'confidence': [float('nan'), float('nan')],
+            'is_low_confidence': [True, True],
+        })
+        stats = ins.compute_insights(df)
+        assert stats['average_score'] == 0.0
+        assert stats['average_confidence'] == 0.0
+        for p in stats['participant_stats']:
+            assert p['avg_sentiment'] == 0.0
+            assert p['avg_confidence'] == 0.0
 
 
 # ===========================
