@@ -1,10 +1,21 @@
-# Byte-compiled / optimized / DLL files
+# ==============================================================================
+# ChatSense AI - Production .gitignore Specification
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Byte-compiled, Optimized, and DLL Files
+# ------------------------------------------------------------------------------
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+*.pyd
+*.dll
+*.dylib
 
-# Python distribution / packaging
+# ------------------------------------------------------------------------------
+# 2. Python Distribution, Packaging & Build Artifacts
+# ------------------------------------------------------------------------------
 .Python
 build/
 develop-eggs/
@@ -23,54 +34,101 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
 
-# Virtual Environments
+# ------------------------------------------------------------------------------
+# 3. Virtual Environments, Toolchains & Package Managers
+# ------------------------------------------------------------------------------
 .venv/
 venv/
 env/
 ENV/
 env.bak/
 venv.bak/
+*.venv/
+.env.local/
+.conda/
+conda-bld/
+.direnv/
+.mise/
+.mise.local.toml
+.tool-versions.local
 
-# Environment variables
+# ------------------------------------------------------------------------------
+# 4. Environment Variables, Secrets & Configuration Overrides
+# ------------------------------------------------------------------------------
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.crt
 
-# Jupyter Notebook & Checkpoints
-.ipynb_checkpoints
-
-# IDEs and Editors
+# ------------------------------------------------------------------------------
+# 5. IDEs, Editors & Operating System Artifacts
+# ------------------------------------------------------------------------------
+# JetBrains (PyCharm, IntelliJ)
 .idea/
-.vscode/
+*.iws
+*.iml
+*.ipr
+
+# Microsoft Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# Vim, Emacs & Sublime Text
 *.swp
 *.swo
 *~
+.#*
+*.sublime-project
+*.sublime-workspace
+
+# Eclipse
 .project
 .pydevproject
 .settings/
 
-# Testing & Coverage
+# macOS Finder & Spotlight
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows Explorer
+[Dd]esktop.ini
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+$RECYCLE.BIN/
+
+# ------------------------------------------------------------------------------
+# 6. Testing, Code Quality & Coverage Artifacts
+# ------------------------------------------------------------------------------
 .pytest_cache/
 .coverage
 .coverage.*
 htmlcov/
 .tox/
 .nox/
+.hypothesis/
+.ruff_cache/
+.mypy_cache/
+nosetests.xml
+coverage.xml
 
-# Operating System files
-Thumbs.db
-Thumbs.db:encryptable
-ehthumbs.db
-ehthumbs_vista.db
-*.stackdump
-[Dd]esktop.ini
-.DS_Store
-._*
-.Spotlight-V100
-.Trashes
-
-# Machine Learning Large Model Checkpoints & Binaries (>100MB)
+# ------------------------------------------------------------------------------
+# 7. Machine Learning Models, Heavy Checkpoints & Weights (>50MB)
+# ------------------------------------------------------------------------------
 *.bin
 *.pt
 *.pth
@@ -81,28 +139,53 @@ ehthumbs_vista.db
 *.ckpt
 data/models/**/pytorch_model.bin
 data/models/**/.cache/
+**/huggingface/
+runs/
+wandb/
 
-# User Data, Uploads & Synthetic Test Runs
+# ------------------------------------------------------------------------------
+# 8. User Uploads, Temp Files, Session Pickles & Visualizations
+# ------------------------------------------------------------------------------
 uploads/*
 !uploads/.gitkeep
-syn_test/
-testing/
 
-# Generated Session Images & Temporary Visualizations
+# Ephemeral session caches and pickles
+*.pkl
+*.pickle
+contextguard_sessions/
+chatsense_sessions/
+
+# Generated Matplotlib / Seaborn figures and session folders
 static/images/*
 !static/images/confusion_matrix.png
+!static/images/.gitkeep
 static/*.png
 
-# Temporary Session Pickles, Caches & Logs
-*.pkl
+# Temporary, debug & scratch directories
 *.log
 *.tmp
 *.bak
 scratch/
 
-# Text & CSV Data Files (Preserving evaluation benchmarks, tokenizer vocab, and requirements)
+# ------------------------------------------------------------------------------
+# 9. Local Synthetic Edge-Case & Evaluation Benchmarks (Local test harness)
+# ------------------------------------------------------------------------------
+syn_test/
+testing/
+
+# ------------------------------------------------------------------------------
+# 10. Data Files & Text Assets (Excluding raw user chats; preserving benchmark files)
+# ------------------------------------------------------------------------------
 *.txt
 *.csv
+
+# Explicitly whitelist vital project assets, benchmarks, and tokenizer files
 !requirements.txt
 !data/sentiment_eval_dataset.csv
 !data/models/**/vocab.txt
+!data/models/**/config.json
+!data/models/**/modeling_abuse.py
+!data/models/**/tokenizer.json
+!data/models/**/tokenizer_config.json
+!data/models/**/special_tokens_map.json
+!data/models/**/training_info.json
